@@ -120,7 +120,7 @@ public class Buttons {
 
     // --------------------------------- ApSlave --------------------------------
 
-    abstract static class ApSlave extends Button {
+    static abstract class ApSlave extends Button {
         final void update(Analysis a) {
             switch (a.ap_mode) {
                 case 0: {
@@ -407,9 +407,7 @@ public class Buttons {
         }
     }
 
-
     // --------------------------------- rSDBY --------------------------------
-
 
     static class rSDBY extends Number {
 

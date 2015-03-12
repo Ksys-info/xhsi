@@ -26,7 +26,7 @@ import java.util.ArrayList;
 public class XCommBuffers {
 
     /**
-     * List of active buttons
+     * List of active messages
      */
     ArrayList<Display.XCommEntry> messages  = new ArrayList<Display.XCommEntry>();
 
@@ -34,10 +34,10 @@ public class XCommBuffers {
      * update
      */
     void update(ArrayList<Display.XCommEntry> newMessages) {
-        xxx: if (newMessages.size() == messages.size()) {
+        brk: if (newMessages.size() == messages.size()) {
             for (Display.XCommEntry nm : newMessages) {
                 if (!messages.contains(nm)) {
-                    break xxx;
+                    break brk;
                 }
             }
             return; // All the same so don't change

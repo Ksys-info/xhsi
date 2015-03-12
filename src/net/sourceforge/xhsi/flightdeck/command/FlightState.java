@@ -26,12 +26,12 @@ public class FlightState  {
     /**
      * The highest point since takeoff
      */
-    int highest;
+    int highest = 0;
 
     /**
      * True if the autopilot was engaged after takeoff
      */
-    boolean autopilotWasOn;
+    boolean autopilotWasOn = false;
 
     /**
      * The last recorded distance to target

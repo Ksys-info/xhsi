@@ -132,7 +132,6 @@ public class Display implements MouseListener {
                                        GridBagConstraints.CENTER,    // anchor
                                        GridBagConstraints.BOTH,      // fill
                                        new Insets(4, 4, 4, 4),       // insets
-                                     //new Insets(0, 0, 0, 0),       // insets
                                        0,                            // ipadx
                                        0                             // ipady
                                      );
@@ -786,7 +785,7 @@ public class Display implements MouseListener {
 
     // ------------------------------------- XCommEntry -------------------------------------
 
-    static class XCommEntry extends IluminatedButton {
+    final static class XCommEntry extends IluminatedButton {
 
         String desc;
 
@@ -794,7 +793,6 @@ public class Display implements MouseListener {
          * XCommEntry
          */
         XCommEntry(String text, String desc, Color color) {
-            setFontAdjust(2.0f);
             setText(text);
             setForeground(color);
             this.desc = desc;

@@ -104,7 +104,7 @@ public class CmdConfigurator {
     private FlightState fs = new FlightState();
 
     /**
-     * The variable that holds the property state
+     * The variable that holds the current property state
      */
     CommanderProperties cp = CommanderProperties.create("CMD.properties"); // Read
 
@@ -222,7 +222,7 @@ public class CmdConfigurator {
         this.mf = mf;
         this.aircraft = mf.get_aircraft_instance();
         this.avionics = aircraft.get_avionics();
-        reload(); // Must reload as the previous version has null aircraft/avionics entries
+        reload(); // Must reload because the initial load has null aircraft/avionics entries
     }
 
     /**
@@ -345,7 +345,6 @@ public class CmdConfigurator {
         cp.props.setProperty(key, value);
         cp = CommanderProperties.create("CMD.properties", cp.props); // Write
     }
-
 
     /**
      * incProperty
@@ -553,8 +552,8 @@ public class CmdConfigurator {
      */
     private String defaultConfig4 =
          "instrument(Autopilot)                                         \n"
-        +"columns(4)                                                    \n"
         +"background(#283848)                                           \n"
+        +"columns(4)                                                    \n"
         +"width(270)                                                    \n"
         +"height(368)                                                   \n"
         +"btn(hNAV1)        btn(hNAV2)  btn(hGPS)    btn(aAP)           \n"

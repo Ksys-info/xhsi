@@ -127,7 +127,7 @@ public class CommanderProperties extends CommanderPropertiesSuper {
      */
     public static PropertiesPanel.Entry[] getEntryTable() {
         return new PropertiesPanel.Entry[] {
-            //                           -key-      -default-     -label-
+            //                         -key-      -default-     -label-
             new PropertiesPanel.Entry("def5",       false,   "Use 5-column internal configuration"),
             new PropertiesPanel.Entry("file",       false,   "Load configuration from \"CMD.config\" file (requires restart)"),
             new PropertiesPanel.Entry("alt_dh",     false,   "Use following decision height setting"),
@@ -151,12 +151,14 @@ public class CommanderProperties extends CommanderPropertiesSuper {
             new PropertiesPanel.Entry("warn_hsel",  false,   "Warn autopilot is in heading (HDG) or wing level (WLV) mode"),
             new PropertiesPanel.Entry("warn_vs",    false,   "Warn when climbing and descending"),
             new PropertiesPanel.Entry("vspeed",      "100",  "Vertical speed"),
+            new PropertiesPanel.Entry("xCOMMfont",   "2.0",  "Font adjustment for xCOMM"),
         };
     }
 
     /*
      * Convenient instance variables
      */
+
     boolean file        = getBoolean("file");
     boolean def5        = getBoolean("def5");
     boolean alt_dh      = getBoolean("alt_dh");
@@ -180,6 +182,7 @@ public class CommanderProperties extends CommanderPropertiesSuper {
     boolean warn_hsel   = getBoolean("warn_hsel");
     boolean warn_vs     = getBoolean("warn_vs");
     float   vspeed      = getFloat("vspeed");
+    float   xCOMMfont   = getFloat("xCOMMfont");
     String  powerMode   = getString("powerMode", "FF"); // This is an important default so the internal configs will work
 }
 
@@ -196,6 +199,9 @@ class CommanderPropertiesSuper {
      */
     final Properties props;
 
+    /**
+     * CommanderPropertiesSuper
+     */
     CommanderPropertiesSuper(Properties props) {
         this.props = props;
         for (PropertiesPanel.Entry entry : CommanderProperties.getEntryTable()) {

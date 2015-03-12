@@ -28,6 +28,7 @@ import java.awt.FlowLayout;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.Dimension;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
@@ -46,6 +47,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTabbedPane;
 import javax.swing.JTextField;
+import javax.swing.JScrollPane;
 
 import net.sourceforge.xhsi.flightdeck.empty.EmptyComponent;
 import net.sourceforge.xhsi.flightdeck.pfd.PFDComponent;
@@ -1679,7 +1681,7 @@ public class PreferencesDialog extends JDialog implements ActionListener {
 
     }
 
-    private JPanel create_cmd_options_tab() {
+    private JScrollPane create_cmd_options_tab() {
         final CmdConfigurator conf = CmdConfigurator.getInstance();
         cmd_panel = new PropertiesPanel(
             conf.getEntryTable(),
@@ -1690,7 +1692,10 @@ public class PreferencesDialog extends JDialog implements ActionListener {
                 }
             }
         );
-        return cmd_panel;
+        JScrollPane scrollPane = new JScrollPane(cmd_panel);
+        setPreferredSize(new Dimension(800, 500));
+        add(scrollPane, BorderLayout.CENTER);
+        return scrollPane;
     }
 
     public void setVisible(boolean value) {

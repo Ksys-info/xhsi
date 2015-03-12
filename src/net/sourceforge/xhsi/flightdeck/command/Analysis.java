@@ -121,7 +121,7 @@ public class Analysis extends SuperAnalysis {
     String  aoa_label = (aoa < 0) ? "aoa" : "AOA";
     String  aoa_text  = "The angle of attact is "+aoa;
     String  xpdr = String.format("%04d", avionics.transponder_code());
-    private boolean xplaneRunning  = true;
+    private boolean xplaneRunning = true;
 
 
     /**

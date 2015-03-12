@@ -21,27 +21,17 @@ package net.sourceforge.xhsi.flightdeck.command;
 import java.awt.Font;
 import java.awt.Color;
 import java.awt.Insets;
-import java.awt.Graphics2D;
-import java.awt.FontMetrics;
-import java.awt.FlowLayout;
 import java.awt.GridBagLayout;
 import java.awt.GridBagConstraints;
-import java.awt.geom.Rectangle2D;
 import java.awt.event.ComponentEvent;
 import java.awt.event.ComponentListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.util.Date;
-import java.util.TimeZone;
 import java.util.ArrayList;
-import java.text.SimpleDateFormat;
 import javax.swing.JPanel;
 import javax.swing.JButton;
 import javax.swing.JComponent;
 import javax.swing.BorderFactory;
-
-import net.sourceforge.xhsi.XHSIStatus;
-import net.sourceforge.xhsi.model.Avionics;
 
 /**
  * xCOMM
@@ -90,16 +80,10 @@ public class xCOMM extends Display.Entry implements MouseListener, ComponentList
         0                            // ipady
     );
 
-
     /**
      * buttons
      */
     private ArrayList<Display.XCommEntry> messages = new ArrayList<Display.XCommEntry>();
-
-    /**
-     * font;
-     */
-    private Font font = getFont();
 
     /**
      * holdTime
@@ -117,7 +101,7 @@ public class xCOMM extends Display.Entry implements MouseListener, ComponentList
      * init
      */
     JComponent init(Display disp, int x) {
-        slots = disp.cols - x; // take all the slots left in the row
+        slots = disp.cols - x; // take all the remaining slots in the row
         nullMsg.initEntry(disp, -1);
         cons.weightx = 1;
         cons.anchor = GridBagConstraints.WEST;
@@ -149,13 +133,13 @@ public class xCOMM extends Display.Entry implements MouseListener, ComponentList
      * update
      */
     void update(Analysis a) {
-        setMessages(a.xcb.messages);
+        setMessages(a.xcb.messages, a.p.xCOMMfont);
     }
 
     /**
-     * update
+     * setMessages
      */
-    void setMessages(ArrayList<Display.XCommEntry> newMessages) {
+    void setMessages(ArrayList<Display.XCommEntry> newMessages, float fontAdjust) {
         if (messages != newMessages && System.currentTimeMillis() - holdTime > 5000L) {
             for (Display.XCommEntry m : messages) {
                 ((JButton)m.xbtn).removeMouseListener(this);
@@ -165,11 +149,11 @@ public class xCOMM extends Display.Entry implements MouseListener, ComponentList
             cons.gridx = 0;
             cons.weightx = 0;
             for (Display.XCommEntry m : messages) {
+                m.setFontAdjust(fontAdjust);
                 m.initEntry(disp, -1);
                 ((JButton)m.xbtn).addMouseListener(this);
                 panel.add(m.xbtn, cons);
                 cons.gridx++;
-                //cons.weightx += 0.1; // ???
             }
             panel.validate();
             panel.repaint();
@@ -184,7 +168,7 @@ public class xCOMM extends Display.Entry implements MouseListener, ComponentList
             if (event.getSource() == m.xbtn && m.desc != NODESC) {
                 ArrayList<Display.XCommEntry> newMessgaes = new ArrayList<Display.XCommEntry>();
                 newMessgaes.add(new Display.XCommEntry(m.desc, NODESC, m.getForeground()));
-                setMessages(newMessgaes);
+                setMessages(newMessgaes, m.getFontAdjust());
                 holdTime = System.currentTimeMillis();
                 return;
             }
@@ -225,5 +209,4 @@ public class xCOMM extends Display.Entry implements MouseListener, ComponentList
 
     public void componentShown(ComponentEvent e) {
     }
-
 }
