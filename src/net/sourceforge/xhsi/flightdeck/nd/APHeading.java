@@ -74,8 +74,8 @@ public class APHeading extends NDSubcomponent {
                 );
 
                 // heading bug
-                int heading_bug_width = (int) Math.min(38, 40 * nd_gc.shrink_scaling_factor);
-                int heading_bug_height = (int) Math.min(14, 16 * nd_gc.shrink_scaling_factor);
+                int heading_bug_width = Math.round(30.0f * nd_gc.scaling_factor);
+                int heading_bug_height = Math.round(12.0f * nd_gc.scaling_factor);
 
                 g2.setColor(nd_gc.heading_bug_color);
                 polyline = new GeneralPath(GeneralPath.WIND_EVEN_ODD, 9);
@@ -88,6 +88,10 @@ public class APHeading extends NDSubcomponent {
                 polyline.lineTo(nd_gc.map_center_x + heading_bug_width/2, nd_gc.rose_y_offset);
                 polyline.lineTo (nd_gc.map_center_x - heading_bug_width/2, nd_gc.rose_y_offset);
                 g2.draw(polyline);
+                if ( this.avionics.ap_hdg_sel_on() || ( this.avionics.is_x737() && this.avionics.x737_hdg() > 0 ) ) {
+                    g2.fill(polyline);
+                }
+                
 
                 if ( ! nd_gc.mode_classic_hsi ) {
                     // dotted line from plane to heading bug, not for APP CTR or VOR CTR

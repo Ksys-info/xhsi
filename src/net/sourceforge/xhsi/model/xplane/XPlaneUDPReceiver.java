@@ -1,23 +1,23 @@
 /**
 * XPlaneUDPReceiver.java
-* 
+*
 * Establishes a datagram socket and receives flight simulator data packages
-* send by the XHSI plugin for X-Plane. The received data is forwarded to 
-* XPlaneDataPacketDecoder. 
-* 
+* send by the XHSI plugin for X-Plane. The received data is forwarded to
+* XPlaneDataPacketDecoder.
+*
 * Copyright (C) 2007  Georg Gruetter (gruetter@gmail.com)
 * Copyright (C) 2010  Marc Rogiers (marrog.123@gmail.com)
-* 
+*
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2 
+* as published by the Free Software Foundation; either version 2
 * of the License, or (at your option) any later version.
 *
 * This library is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU Lesser General Public
 * License along with this library; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -61,9 +61,9 @@ public class XPlaneUDPReceiver extends StoppableThread {
         this.multicast_recv = multicast;
         if ( multicast ) {
             logger.config("Joining multicast group " + group_str);
-            InetAddress group = InetAddress.getByName(group_str);        	
+            InetAddress group = InetAddress.getByName(group_str);
             this.datagram_socket.joinGroup(group);
-        } 
+        }
     }
 
 
@@ -96,7 +96,7 @@ public class XPlaneUDPReceiver extends StoppableThread {
                 packet = receiveXPlanePacket();
 
                 XHSIStatus.receiving = true;
-                
+
                 if  (this.has_reception == false) {
                     this.has_reception = true;
                     logger.info("UDP reception re-established");
@@ -108,7 +108,7 @@ public class XPlaneUDPReceiver extends StoppableThread {
                 }
             } catch (SocketTimeoutException ste) {
                 XHSIStatus.receiving = false;
-                
+
                 if (this.has_reception == true) {
                     logger.warning("No UDP reception");
                     this.has_reception = false;
@@ -117,6 +117,7 @@ public class XPlaneUDPReceiver extends StoppableThread {
                 logger.warning("Caught I/O error while waiting for UDP packets! (" + ioe.toString() + ")");
             } catch(Exception e) {
                 logger.warning("Caught error while waiting for UDP packets! (" + e.toString() + " / " + e.getMessage() + ")");
+                e.printStackTrace();
             }
         }
         logger.fine("X-Plane receiver stopped");

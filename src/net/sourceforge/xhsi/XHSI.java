@@ -26,7 +26,7 @@ package net.sourceforge.xhsi;
 
 
 import java.awt.Color;
-//import java.awt.Component;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Frame;
 import java.awt.Image;
@@ -69,24 +69,30 @@ import net.sourceforge.xhsi.flightdeck.UIHeartbeat;
 
 import net.sourceforge.xhsi.conwin.ConWinComponent;
 import net.sourceforge.xhsi.flightdeck.annunciators.AnnunComponent;
+import net.sourceforge.xhsi.flightdeck.cdu.CDUComponent;
 import net.sourceforge.xhsi.flightdeck.clock.ClockComponent;
 import net.sourceforge.xhsi.flightdeck.mfd.MFDComponent;
 import net.sourceforge.xhsi.flightdeck.eicas.EICASComponent;
 import net.sourceforge.xhsi.flightdeck.empty.EmptyComponent;
 import net.sourceforge.xhsi.flightdeck.nd.NDComponent;
+import net.sourceforge.xhsi.flightdeck.nd.JXMap;
 import net.sourceforge.xhsi.flightdeck.pfd.PFDComponent;
 import net.sourceforge.xhsi.flightdeck.command.CmdComponent;
 import net.sourceforge.xhsi.flightdeck.command.CmdConfigurator;
 
-
-
 import net.sourceforge.xhsi.util.XHSILogFormatter;
+
+import org.c7.io.Message;
 
 
 public class XHSI implements ActionListener {
 
 
-    private static final String RELEASE = "2.0 Beta 8 Alpha 10";
+    public static final String RELEASE = "2.0 Beta 8x";
+    public static final int EXPECTED_PLUGIN = 20008;
+    public static final int RESTART_CODE = s2int(System.getProperty("xhsi.restart"), 0);
+    public static final boolean SENDMESSAGES = s2int(System.getProperty("xhsi.sendmessages"), 0) > 0;
+
 
 
     public enum Mode { REPLAY, LIVE, RECORD }
@@ -94,7 +100,8 @@ public class XHSI implements ActionListener {
     private Image logo_image = Toolkit.getDefaultToolkit().getImage(getClass().getResource("XHSI_logo32.png"));
 
     // menu item commands must be unique...
-    public static final String ACTION_QUIT  = "Quit";
+    public static final String ACTION_RESTART = "Restart";
+    public static final String ACTION_QUIT = "Quit";
     public static final String ACTION_PREFERENCES = "Preferences ...";
     public static final String ACTION_ONTOP = "Windows on top";
     public static final String ACTION_ABOUT = "About XHSI ...";
@@ -330,6 +337,7 @@ public class XHSI implements ActionListener {
         NDComponent nd_ui = null;
         EICASComponent eicas_ui = null;
         MFDComponent mfd_ui = null;
+        CDUComponent cdu_ui = null;
 
         // some preferences require a reconfiguration
         for (int i=0; i<instruments.size(); i++) {
@@ -417,6 +425,19 @@ public class XHSI implements ActionListener {
                     this.preferences.add_subsciption(clock_ui, XHSIPreferences.PREF_USE_POWER);
                     this.preferences.add_subsciption(clock_ui, XHSIPreferences.PREF_INSTRUMENT_STYLE);
                     break;
+                case XHSIInstrument.CDU_ID :
+                    // CDU
+                    cdu_ui = (CDUComponent)instruments.get(i).components;
+                    this.preferences.add_subsciption(cdu_ui, XHSIPreferences.PREF_BORDER_STYLE);
+                    this.preferences.add_subsciption(cdu_ui, XHSIPreferences.PREF_BORDER_COLOR);
+                    this.preferences.add_subsciption(cdu_ui, XHSIPreferences.PREF_BOLD_FONTS);
+                    this.preferences.add_subsciption(cdu_ui, XHSIPreferences.PREF_USE_MORE_COLOR);
+                    this.preferences.add_subsciption(cdu_ui, XHSIPreferences.PREF_ANTI_ALIAS);
+                    this.preferences.add_subsciption(cdu_ui, XHSIPreferences.PREF_DU_PREPEND);
+                    this.preferences.add_subsciption(cdu_ui, XHSIPreferences.PREF_USE_POWER);
+                    this.preferences.add_subsciption(cdu_ui, XHSIPreferences.PREF_INSTRUMENT_STYLE);
+                    this.preferences.add_subsciption(cdu_ui, XHSIPreferences.PREF_CDU_SOURCE);
+                    break;
                 default : // XHSIInstrument.CMD_ID ... XHSIInstrument.CMD_ID+8
                     // Commander
                     CmdComponent cmd_ui = (CmdComponent)instruments.get(i).components;
@@ -444,7 +465,7 @@ public class XHSI implements ActionListener {
 //taxi.get_chart("YMML");
 
         // add components update watchdog
-        UIHeartbeat ui_heartbeat = new UIHeartbeat(this.xhsi_ui, pfd_ui, nd_ui, eicas_ui, mfd_ui, 1000);
+        UIHeartbeat ui_heartbeat = new UIHeartbeat(this.xhsi_ui, pfd_ui, nd_ui, eicas_ui, mfd_ui, cdu_ui, 1000);
         ui_heartbeat.start();
         this.running_threads.add(ui_heartbeat);
 
@@ -456,32 +477,46 @@ public class XHSI implements ActionListener {
 
     }
 
-    private void shutdown_threads() {
+    void restart() {
+        shutdown_threads(RESTART_CODE);
+    }
 
-        StoppableThread thread;
+    void shutdown_threads() {
+        shutdown_threads(0);
+    }
 
-        XHSIStatus.status = XHSIStatus.STATUS_SHUTDOWN;
-
-        for (int i=0;i<this.running_threads.size();i++) {
-            thread = (StoppableThread) this.running_threads.get(i);
-            thread.signal_stop();
-            try {
-                thread.join(1000);
-            } catch (Exception e) {
-                logger.warning("Could not shutdown thread. (" + e.toString() + ")");
+    private void shutdown_threads(int exit_code) {
+        try {
+            logger.fine("stopping threads");
+            XHSIStatus.status = XHSIStatus.STATUS_SHUTDOWN;
+            for (int i=0;i<this.running_threads.size();i++) {
+                StoppableThread thread = (StoppableThread) this.running_threads.get(i);
+                thread.signal_stop();
+                try {
+                    thread.join(1000);
+                } catch (Exception e) {
+                    logger.warning("Could not shutdown thread. (" + e.toString() + ")");
+                }
             }
+            logger.fine("clean exit from threads");
+        } finally {
+            System.exit(exit_code);
         }
-
     }
 
 
     private boolean isMac() {
-        return (System.getProperty("mrj.version") != null);
+        // return (System.getProperty("mrj.version") != null);
+        String OS = System.getProperty("os.name").toLowerCase();
+        return (OS.indexOf("mac") >= 0);
     }
-
 
     public boolean isAlwaysOnTop() {
         return this.xhsi_frame.isAlwaysOnTop();
+    }
+
+    public void flipAlwaysOnTop() {
+        setAlwaysOnTop(!isAlwaysOnTop());
     }
 
     public void setAlwaysOnTop(boolean value) {
@@ -493,8 +528,19 @@ public class XHSI implements ActionListener {
         }
         this.xhsi_frame.setAlwaysOnTop(value);
         this.xhsi_frame.setExtendedState(value ? Frame.ICONIFIED : Frame.NORMAL);
+
+        if (SENDMESSAGES) {
+            try {
+                Message.write("xhsi", value ? "aoton" : "aotoff");
+            } catch (Exception ex) {
+                System.out.println("Message send exception: "+ex);
+            }
+        }
     }
 
+    //public void saveAllWindowPositions() {
+    //    CmdConfigurator.saveAllWindowPositions(preferences, instruments);
+    //}
 
     private void create_UI() throws Exception {
 
@@ -502,6 +548,14 @@ public class XHSI implements ActionListener {
 
         // Sorry, Java is about being platform-independent; I disable the creation of Mac look and feel
         // at least until it can be added again without having to maintain any extra code
+
+        // Experimental : remove Mac Menu Bar for full screen mode
+        if (isMac()) {
+            logger.config("Mac detected. Disable Menu Bar.");
+
+            System.setProperty("apple.laf.useScreenMenuBar", "true");
+            System.setProperty("com.apple.mrj.application.apple.menu.about.name", "XHSI_PLUGIN");
+        }
 
 //        if (isMac()) {
 //            logger.config("Mac detected. Create Menubar with Mac look and feel");
@@ -557,6 +611,9 @@ public class XHSI implements ActionListener {
 //        }
 
 
+       // Initialize the tray
+        Tray.init(this, logo_image);
+
         // XHSI_PLUGIN master instrument_window =================================================
         this.xhsi_frame = new JFrame("XHSI " + XHSI.RELEASE);
 
@@ -577,7 +634,6 @@ public class XHSI implements ActionListener {
         this.xhsi_frame.pack();
         this.xhsi_frame.setBackground( Color.WHITE );
         this.xhsi_frame.setMinimumSize( new Dimension(500, 70) );
-        this.xhsi_frame.setAlwaysOnTop( this.preferences.get_start_ontop() );
         if ( this.preferences.get_conwin_minimized() ) this.xhsi_frame.setExtendedState(Frame.ICONIFIED);
         this.xhsi_frame.setVisible(true);
 
@@ -592,6 +648,22 @@ public class XHSI implements ActionListener {
 
             instrument_window.frame = new JFrame( instrument_window.get_description() );
             instrument_window.frame.setUndecorated( this.preferences.get_hide_window_frames() );
+// requires Java 1.7
+            instrument_window.frame.setType(javax.swing.JFrame.Type.UTILITY);
+
+            // TODO : Full Screen Mode
+            /* Full Screen Code
+                GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+
+                if (gd.isFullScreenSupported()) {
+                    setUndecorated(true);
+                    gd.setFullScreenWindow(this);
+                } else {
+                    System.err.println("Full screen not supported");
+                    setSize(100, 100); // just something to let you see the window
+                    setVisible(true);
+                }
+            */
 
             // Exit on Close, otherwise the instrument_window will close, but java will still be running
 //            instrument_window.frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -642,6 +714,11 @@ public class XHSI implements ActionListener {
                     model_instance.get_repository_instance().add_observer( (ClockComponent)instrument_window.components );
                     min_size = true;
                     break;
+                case XHSIInstrument.CDU_ID :
+                    instrument_window.components = new CDUComponent(model_instance, du_num);
+                    model_instance.get_repository_instance().add_observer( (CDUComponent)instrument_window.components );
+                    min_size = true;
+                    break;
                 default : // XHSIInstrument.CMD_ID
                     instrument_window.components = new CmdComponent(du_num, instrument_window.frame, cmd_wno++);
                     model_instance.get_repository_instance().add_observer( (CmdComponent)instrument_window.components );
@@ -649,7 +726,7 @@ public class XHSI implements ActionListener {
                     break;
             }
 
-            if ( instrument_window.components != null ) {
+            if (instrument_window.components != null) {
                 instrument_window.frame.getContentPane().add(instrument_window.components);
             }
 
@@ -680,7 +757,7 @@ public class XHSI implements ActionListener {
             }
 
             //instrument_window.frame.setIgnoreRepaint(true);
-            instrument_window.frame.setAlwaysOnTop(this.preferences.get_start_ontop());
+            //instrument_window.frame.setAlwaysOnTop(this.preferences.get_start_ontop());
             // much later or not?: instrument_window.frame.setVisible(true);
             instrument_window.frame.setVisible( instrument_window.du.enabled() );
 
@@ -694,6 +771,7 @@ public class XHSI implements ActionListener {
         // define the frames for other dialog windows
         XHSISettings.get_instance().init_frames(this.xhsi_frame);
 
+        setAlwaysOnTop( this.preferences.get_start_ontop() );
     }
 
 
@@ -719,6 +797,12 @@ public class XHSI implements ActionListener {
                     break;
                 case XHSIInstrument.ANNUN_ID :
                     ((AnnunComponent)window.components).forceReconfig();
+                    break;
+                case XHSIInstrument.CLOCK_ID :
+                    ((ClockComponent)window.components).forceReconfig();
+                    break;
+                case XHSIInstrument.CDU_ID :
+                    ((CDUComponent)window.components).forceReconfig();
                     break;
             }
     //        window.frame.setVisible(display);
@@ -765,6 +849,16 @@ public class XHSI implements ActionListener {
         menu_item.setMnemonic(KeyEvent.VK_W);
         menu_item.setSelected(this.preferences.get_start_ontop());
         main_xhsi_menu.add(menu_item);
+
+        if (RESTART_CODE != 0) {
+            main_xhsi_menu.addSeparator();
+            menu_item = new JMenuItem(XHSI.ACTION_RESTART);
+            menu_item.setToolTipText("Restart progream");
+            menu_item.addActionListener(this);
+            menu_item.setMnemonic(KeyEvent.VK_R);
+            main_xhsi_menu.add(menu_item);
+        }
+
         main_xhsi_menu.addSeparator();
 
         menu_item = new JMenuItem(XHSI.ACTION_QUIT);
@@ -788,10 +882,9 @@ public class XHSI implements ActionListener {
         String command = event.getActionCommand();
 
         if (command.equals(ACTION_QUIT)) {
-            logger.fine("stopping threads");
             shutdown_threads();
-            logger.fine("clean exit from threads");
-            System.exit(0);
+        } else if (command.equals(ACTION_RESTART)) {
+            restart();
         } else if (command.equals(ACTION_PREFERENCES)) {
             // choose X-Plane directory etc
             this.preferences_dialog.setLocation(this.xhsi_frame.getX()+20, this.xhsi_frame.getY()+60);
@@ -799,38 +892,49 @@ public class XHSI implements ActionListener {
             this.preferences_dialog.pack();
         } else if (command.equals(ACTION_ONTOP)) {
             // keep windows always on top, or not
-            this.xhsi_frame.setAlwaysOnTop( ! this.xhsi_frame.isAlwaysOnTop() );
-            for (int i=0; i<instruments.size(); i++) {
-                instruments.get(i).frame.setAlwaysOnTop( ! instruments.get(i).frame.isAlwaysOnTop() );
-            }
+            setAlwaysOnTop( ! this.xhsi_frame.isAlwaysOnTop() );
         } else if (command.equals(ACTION_ABOUT)) {
-            JOptionPane.showMessageDialog(this.xhsi_frame,
-                    "XHSI " + XHSI.RELEASE + "\n" +
-                    "\n" +
-                    "XHSI - eXternal High-fidelity Simulator Instruments for X-Plane\n" +
-                    "  PFD - Primary Flight Display\n" +
-                    "  ND - Navigation Display\n" +
-                    "  EICAS - Engine Instruments\n" +
-                    "  MFD - Airport Chart / Flight Plan / Lower EICAS\n" +
-                    "  Clock / Chrongraph\n" +
-                    "  Annunciators - Gear, Flaps, etc...\n" +
-                    "\n" +
-                    "http://xhsi.sourceforge.net\n" +
-                    "\n" +
-                    "Main contributors:\n" +
-                    "2007-2009 Georg Gruetter\n" +
-                    "2009 Sandy Barbour\n" +
-                    "2009-2014 Marc Rogiers\n" +
-                    "2014 Nicolas Carel\n" +
-                    "\n" +
-                    "Using Java " + System.getProperty("java.version") + "\n" +
-                    "Running on " + this.ip_host,
-                    "About XHSI",
-                    JOptionPane.INFORMATION_MESSAGE);
-
+            showActionDialog();
         }
+    }
 
+    public void showActionDialog() {
+        JOptionPane.showMessageDialog(this.xhsi_frame,
+            "XHSI " + XHSI.RELEASE + "\n" +
+            "\n" +
+            "XHSI - eXternal High-fidelity Simulator Instruments for X-Plane\n" +
+            "    PFD - Primary Flight Display\n" +
+            "    ND - Navigation Display\n" +
+            "    EICAS - Engine Instruments\n" +
+            "    MFD - Airport Chart / Flight Plan / Lower EICAS / etc...\n" +
+            "    CDU - Remote Control Display Unit for third-party FMC\n" +
+            "    Clock / Chronograph\n" +
+            "    Annunciators - Gear, Flaps, etc...\n" +
+            "\n" +
+            "http://xhsi.sourceforge.net\n" +
+            "\n" +
+            "Main contributors:\n" +
+            "2007-2009 Georg Gruetter\n" +
+            "2009 Sandy Barbour\n" +
+            "2009-2015 Marc Rogiers\n" +
+            "2014-2015 Nicolas Carel\n" +
+            "\n" +
+            "Using Java " + System.getProperty("java.version") + "\n" +
+            "Running on " + this.ip_host,
+            "About XHSI",
+            JOptionPane.INFORMATION_MESSAGE
+        );
     }
 
 
+    /**
+     * s2int
+     */
+    public static int s2int(String str, int dflt) {
+        try {
+            return Integer.parseInt(str);
+        } catch (Exception ex) {
+        }
+        return dflt;
+    }
 }

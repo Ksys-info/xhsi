@@ -9,6 +9,8 @@
 * 
 * Copyright (C) 2007  Georg Gruetter (gruetter@gmail.com)
 * Copyright (C) 2009-2010  Marc Rogiers (marrog.123@gmail.com)
+* Copyright (C) 2009-2014 qwerty (XFMC section)
+* Copyright (C) 2015 Nicolas Carel (QPAC section)
 * 
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
@@ -36,13 +38,17 @@ import net.sourceforge.xhsi.model.CoordinateSystem;
 import net.sourceforge.xhsi.model.FMS;
 import net.sourceforge.xhsi.model.FMSEntry;
 import net.sourceforge.xhsi.model.ModelFactory;
+import net.sourceforge.xhsi.model.QpacEwdData;
+import net.sourceforge.xhsi.model.QpacMcduData;
 import net.sourceforge.xhsi.model.SimDataRepository;
 import net.sourceforge.xhsi.model.TCAS;
+import net.sourceforge.xhsi.model.XfmcData;
 
 
 public class XPlaneDataPacketDecoder implements XPlaneDataPacketObserver {
 
     private static Logger logger = Logger.getLogger("net.sourceforge.xhsi");
+    private static String charset = "ISO-8859-1";
 
     private boolean received_adc_packet = false;
     private boolean received_fms_packet = false;
@@ -60,6 +66,10 @@ public class XPlaneDataPacketDecoder implements XPlaneDataPacketObserver {
     SimDataRepository xplane_data_repository = null;
     FMS fms = FMS.get_instance();
     TCAS tcas = TCAS.get_instance();
+    XfmcData xfmc = XfmcData.getInstance();
+    QpacEwdData qpac_ewd = QpacEwdData.getInstance();
+    QpacMcduData qpac_mcdu = QpacMcduData.getInstance();
+    
 
     public boolean beyond_active;
     public float last_lat;
@@ -136,6 +146,7 @@ public class XPlaneDataPacketDecoder implements XPlaneDataPacketObserver {
                     // a string of 4 bytes
                     string_data = new String(sim_data, 8+(i*8)+4, 4).trim();
                     data_stream.skipBytes(4);
+//logger.warning("STRING:"+data_point_id+"="+string_data);
                     this.xplane_data_repository.store_sim_string(data_point_id, string_data);
 //                } else if ( data_point_id >= 5000 ) {
 //                    // Int
@@ -247,7 +258,8 @@ public class XPlaneDataPacketDecoder implements XPlaneDataPacketObserver {
                     is_active = ( offset+i == active_entry_index );
 
                     // leg distance
-                    if ( offset+i == 0 ) {
+                    if ( ( offset+i == 0 ) && ( ! is_active ) ) {
+                        // this is only for the legacy default FMS, where the entry with index zero was never an actual waypoint
                         leg_dist = 0;
                     } else {
                         leg_dist = CoordinateSystem.rough_distance(lat, lon, last_lat, last_lon);
@@ -383,6 +395,82 @@ public class XPlaneDataPacketDecoder implements XPlaneDataPacketObserver {
 
             this.received_tcas_packet = true;
 
+        } else if (packet_type.equals("XFMC")) {
+        	
+        	int buff_max = 80;
+            logger.fine("Receiving XFMC packet");
+        	
+            DataInputStream data_stream = new DataInputStream(new ByteArrayInputStream(sim_data));
+            data_stream.skipBytes(4);    // skip the bytes containing the packet type id
+
+            int nb_of_lines = data_stream.readInt();
+            int status = data_stream.readInt();
+            byte[] buff = new byte[buff_max];
+            
+            if (nb_of_lines > 0 ) {
+                for (int i = 0; i < nb_of_lines; i++) {
+
+                	int line_no = data_stream.readInt();
+                	int line_length = data_stream.readInt();
+                	data_stream.read(buff, 0, buff_max);
+                	boolean sm = convertCodedStrings(buff);
+                	String s = new String(buff, 0, line_length, charset);
+                	
+                	xfmc.setLine(line_no, s);
+                }
+            }
+            
+            xfmc.setLine(14, Integer.toString(status));
+            
+        } else if (packet_type.equals("QPAE")) {
+        	int buff_max = 80;
+            logger.finest("Receiving QPAC E/WD packet");
+        	
+            DataInputStream data_stream = new DataInputStream(new ByteArrayInputStream(sim_data));
+            data_stream.skipBytes(4);    // skip the bytes containing the packet type id
+
+            int nb_of_lines = data_stream.readInt();
+            byte[] buff = new byte[buff_max];
+            logger.finest("QPAC E/WD packet lines "+ nb_of_lines);
+            
+            if (nb_of_lines > 0 ) {
+                for (int i = 0; i < nb_of_lines; i++) {
+
+                	int line_no = data_stream.readInt();
+                	int line_length = data_stream.readInt();
+                	data_stream.read(buff, 0, buff_max);
+                	boolean sm = convertCodedStrings(buff);
+                	String s = new String(buff, 0, line_length, charset);
+                	logger.fine("QPAC E/WD packet line " + i + " = " + s);
+                	
+                	qpac_ewd.setLine(line_no, s);
+                }
+            }
+       	
+        } else if (packet_type.equals("QPAM")) {
+        	int buff_max = 80;
+            logger.finest("Receiving QPAC MCDU packet");
+        	
+            DataInputStream data_stream = new DataInputStream(new ByteArrayInputStream(sim_data));
+            data_stream.skipBytes(4);    // skip the bytes containing the packet type id
+
+            int nb_of_lines = data_stream.readInt();
+            byte[] buff = new byte[buff_max];
+            
+            if (nb_of_lines > 0 ) {
+                for (int i = 0; i < nb_of_lines; i++) {
+
+                	int line_no = data_stream.readInt();
+                	int line_length = data_stream.readInt();
+                	data_stream.read(buff, 0, buff_max);
+                	// boolean sm = convertCodedStrings(buff);
+                	String s = new String(buff, 0, line_length, charset);
+                	logger.fine("QPAC MCDU packet line " + i + " = " + s);
+                	
+                	qpac_mcdu.setLine(line_no, s);
+                }
+            }
+            
         }
 
         // no, only for sim data packets
@@ -390,6 +478,19 @@ public class XPlaneDataPacketDecoder implements XPlaneDataPacketObserver {
 
     }
 
+    private boolean convertCodedStrings(byte[] bts){
+
+    	boolean small = false;
+    	
+    	for(int i=0; i < bts.length; i++){
+    		if(bts[i] < 0) {
+    			bts[i] += 128;
+    			small = true;
+    		}
+    		if(bts[i] == 30) bts[i] = (byte) 0xb0;
+    	}
+    	return small;
+    }    
 
     private String decode_plugin_version(float plugin_version) {
 

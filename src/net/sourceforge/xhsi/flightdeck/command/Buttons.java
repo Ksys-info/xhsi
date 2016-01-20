@@ -32,8 +32,10 @@ import net.sourceforge.xhsi.XHSISettings;
 import net.sourceforge.xhsi.XHSIInstrument;
 import net.sourceforge.xhsi.model.Aircraft;
 import net.sourceforge.xhsi.model.Avionics;
+import net.sourceforge.xhsi.flightdeck.nd.JXMap;
 import net.sourceforge.xhsi.flightdeck.mfd.DestinationAirport;
 import net.sourceforge.xhsi.model.xplane.XPlaneSimDataRepository;
+import org.c7.io.Message;
 
 /**
  * Buttons
@@ -107,6 +109,17 @@ public class Buttons {
         ));
     }
 
+    // --------------------------- getInstrumentFrame --------------------------
+
+        static JFrame getInstrumentFrame(XHSI xhsi, String name) {
+            for (XHSIInstrument inst : xhsi.getInstruments()) {
+                if (name.equals(inst.du.get_name())) {
+                    return inst.frame;
+                }
+            }
+            return null;
+        }
+
     // --------------------------------- Button --------------------------------
 
     static abstract class Button extends Display.IluminatedButton {
@@ -127,6 +140,7 @@ public class Buttons {
                     noForeground();
                     break;
                 }
+                /*
                 case 1: {
                     if (a.p.warn_no_ap) {
                         box(Color.YELLOW, false);
@@ -135,6 +149,7 @@ public class Buttons {
                     update2(a);
                     break;
                 }
+                */
                 default: {
                     update2(a);
                     break;
@@ -163,23 +178,117 @@ public class Buttons {
         void update(Analysis a) {
             set(xhsi.isAlwaysOnTop());
         }
+        void click(boolean right) {
+            if (right) {
+                EPI.sendCommand("cmd once sim/GPS/g430n1_popup");
+            } else {
+                xhsi.setAlwaysOnTop(!xhsi.isAlwaysOnTop());
+            }
+        }
+    }
+
+    // --------------------------------- x430 --------------------------------
+
+    static class x430 extends Button {
+        boolean g430visable = false;
+        x430() {
+            //setButtonColors(Color.RED.darker(), Color.GRAY);
+        }
+        void update(Analysis a) {
+            set(g430visable);
+        }
+        void click(boolean right) {
+            g430visable = !g430visable;
+            if (!right) {
+                EPI.sendCommand("cmd once sim/GPS/g430n1_popup");
+            }
+        }
+    }
+
+
+    // --------------------------------- xJXM --------------------------------
+
+    static class xJXM extends Button {
+        void update(Analysis a) {
+        }
         void click() {
-            xhsi.setAlwaysOnTop(!xhsi.isAlwaysOnTop());
+            JXMap.nextMode();
+        }
+    }
+
+    // --------------------------------- xVIEW --------------------------------
+
+    static class xVIEW extends Button {
+
+        static String selected;
+        String key;
+
+        xVIEW() {
+            setButtonColors(Color.RED, Color.GRAY);
+        }
+
+        void update(Analysis a) {
+            if (key == null) {
+                String[] parts = getText().split("\\:", 2);
+                if (parts.length == 2) {
+                    setText(parts[0]);
+                    key = parts[1];
+                } else {
+                    key = "???";
+                    setText(key);
+                }
+            }
+           set(selected == key);
+        }
+
+        void click() {
+            selected = key;
+            EPI.sendCommand("cmd once " + key);
         }
     }
 
     // --------------------------------- xMFD --------------------------------
+/*
 
     static class xMFD extends Button {
-        xMFD() {
+
+        int[] list = null;
+        int next = -1;
+
+        void init() {
             setButtonColors(Color.ORANGE, Color.WHITE);
+            String s = getText();
+            if (s != null) {
+                int pos = s.indexOf('[');
+                if (pos >= 0) {
+                    setText((pos > 0) ? s.substring(0, pos) : "MFD");
+                    s = s.substring(pos+1, s.length() - 1);
+                    String[] slist = s.split(",");
+                    int count = 0;
+                    for (String str : slist) {
+                        if (getMode(str) >= 0) {
+                            count++;
+                        }
+                    }
+                    list = new int[count];
+                    int i = 0;
+                    for (String str : slist) {
+                        int val = getMode(str);
+                        if (val >= 0) {
+                            list[i++] = val;
+                        }
+                    }
+                }
+            }
         }
+
         void update(Analysis a) {
             set(DestinationAirport.isForced());
         }
+
         void click(boolean right) {
             if (!right) {
-                settings.nextMFD();
+                settings.setMFD(list[++next % list.length]);
             } else {
                 String s = (String)JOptionPane.showInputDialog("Specify IACO code ");
                 if ((s != null) && (s.length() > 0)) {
@@ -189,10 +298,37 @@ public class Buttons {
                 }
             }
         }
+
+        int getMode(String str) {
+            String s = str.toLowerCase();
+            if (s.startsWith("arpt" )) return Avionics.MFD_MODE_ARPT;       // 0
+            if (s.startsWith("fpln" )) return Avionics.MFD_MODE_FPLN;       // 1
+            if (s.startsWith("rtu"  )) return Avionics.MFD_MODE_RTU;        // 2
+            if (s.startsWith("eicas")) return Avionics.MFD_MODE_EICAS;      // 3
+            if (s.startsWith("eng"  )) return Avionics.MFD_MODE_ENGINE;     // also 3
+            if (s.startsWith("bleed")) return Avionics.MFD_MODE_BLEED;      // 4
+            if (s.startsWith("cab"  )) return Avionics.MFD_MODE_CAB_PRESS;  // 5
+            if (s.startsWith("press")) return Avionics.MFD_MODE_CAB_PRESS;  // also 5
+            if (s.startsWith("elec" )) return Avionics.MFD_MODE_ELEC;       // 6
+            if (s.startsWith("hyd"  )) return Avionics.MFD_MODE_HYDR;       // 7
+            if (s.startsWith("fuel" )) return Avionics.MFD_MODE_FUEL;       // 8
+            if (s.startsWith("apu"  )) return Avionics.MFD_MODE_APU;        // 9
+            if (s.startsWith("cond" )) return Avionics.MFD_MODE_COND;       // 10
+            if (s.startsWith("air"  )) return Avionics.MFD_MODE_COND;       // also 10
+            if (s.startsWith("door" )) return Avionics.MFD_MODE_DOOR_OXY;   // 11
+            if (s.startsWith("wheel")) return Avionics.MFD_MODE_WHEELS;     // 12
+            if (s.startsWith("fctl" )) return Avionics.MFD_MODE_FCTL;       // 13
+            if (s.startsWith("sys"  )) return Avionics.MFD_MODE_SYS;        // 14
+            if (s.startsWith("cruis")) return Avionics.MFD_MODE_SYS;        // also 14
+            if (s.startsWith("stat" )) return Avionics.MFD_MODE_STATUS;     // 15
+            return -1;
+        }
     }
+*/
 
     // --------------------------------- xVIS --------------------------------
 
+/*
     static class xVIS extends Button {
 
         HashMap<String,JFrame> frames = new HashMap<String,JFrame>();
@@ -209,12 +345,13 @@ public class Buttons {
                     setText((pos > 0) ? s.substring(0, pos) : "VIS");
                     s = s.substring(pos+1, s.length() - 1);
                     list = s.split(",");
-
                     for (XHSIInstrument inst : xhsi.getInstruments()) {
                         String iname = inst.du.get_name();
                         for (String str : list) {
-                            if (str.equals(iname)) {
-                                frames.put(iname, inst.frame);
+                            for (String wname : str.split("\\+")) {
+                                if (wname.equals(iname)) {
+                                    frames.put(iname, inst.frame);
+                                }
                             }
                         }
                     }
@@ -225,11 +362,13 @@ public class Buttons {
         void update(Analysis a) {
             if (list != null) {
                 for (int i = 0 ; i < list.length ; i++) {
-                    JFrame jf = frames.get(list[i]);
-                    if (jf != null) {
-                        boolean wanted = (i == entry && on);
-                        if (jf.isVisible() != wanted) { // This test seems to be needed
-                            jf.setVisible(wanted);
+                    boolean show = (i == entry && on);
+                    for (String winname : list[i].split("\\+")) {
+                        JFrame jf = frames.get(winname);
+                        if (jf != null) {
+                            if (jf.isVisible() != show) { // This test seems to be needed
+                                jf.setVisible(show);
+                            }
                         }
                     }
                 }
@@ -249,6 +388,138 @@ public class Buttons {
             }
         }
     }
+
+*/
+
+    // --------------------------------- xVIS --------------------------------
+
+    static class xVIS extends Button {
+
+        final static int OFF = -1;
+        final static int ON  = 1;
+        static HashMap<String,Integer> wstate = new HashMap<String,Integer>();
+
+        String[] list = null;
+        int entry = 0;
+        int lastEntry = 0;
+
+        void init() {
+            setButtonColors(Color.ORANGE, Color.WHITE);
+            String s = getText();
+            if (s != null) {
+                int pos = s.indexOf('[');
+                if (pos >= 0) {
+                    setText((pos > 0) ? s.substring(0, pos) : "VIP");
+                    s = s.substring(pos+1, s.length() - 1);
+                    list = s.split(",");
+                    //int i = 0;
+                    //for (String st : list) {
+                    //    System.out.println("["+i+"]="+st);
+                    //    i++;
+                    //}
+                }
+            }
+        }
+
+        void update(Analysis a) {
+            if (list != null) {
+                if (lastEntry  != entry) {
+                    boolean wasMfs = isMfd(list[lastEntry]);
+                    boolean nowMfs = isMfd(list[entry]);
+                    if (!nowMfs || !wasMfs) {
+                        setVisible(list[lastEntry], false);
+                    }
+                    setVisible(list[entry], true);
+                    lastEntry = entry;
+                }
+                set(list[entry].equals("arpt") && DestinationAirport.isForced());
+            }
+        }
+
+        void setVisible(String sx, boolean value) {
+            for (String s : sx.split("\\+")) {
+                setVisible0(s, value);
+            }
+        }
+
+        void setVisible0(String str, boolean value) {
+            int mfd = mfdMode(str);
+            String winname = (mfd == -1) ? str : "MFD";
+            Integer wsvalue = (value) ? ((mfd == -1) ? ON : mfd) : OFF;
+            if (!wsvalue.equals(wstate.get(winname))) {
+                wstate.put(winname, wsvalue);
+                setVisible(winname, mfd, value);
+            }
+        }
+
+        void setVisible(String winname, int mfd, boolean value) {
+            for (XHSIInstrument inst : xhsi.getInstruments()) {
+                if (winname.equals(inst.du.get_name())) {
+                    JFrame jf = inst.frame;
+                    if (jf.isVisible() != value) { // This test seems to be needed
+                        jf.setVisible(value);
+                    }
+                    if (value && mfd >= 0) {
+                        settings.setMFD(mfd);
+                    }
+                    return;
+                }
+            }
+            // If not found here it must be an external program like xhid or xpd
+            if (XHSI.SENDMESSAGES) {
+                try {
+                    Message.writeTo("xhsi", winname, (value) ? "show" : "hide");
+                } catch (Exception ex) {
+                    System.out.println("Message send exception: "+ex);
+                }
+            }
+        }
+
+        void click(boolean right) {
+            if (right) {
+                if (list[entry].equals("arpt")) {
+                    String s = (String)JOptionPane.showInputDialog("Specify IACO code ");
+                    if ((s != null) && (s.length() > 0)) {
+                        DestinationAirport.forceDestination(s);
+                    } else {
+                        DestinationAirport.forceDestination(null);
+                    }
+                }
+            } else {
+                entry = ++entry % list.length;
+            }
+        }
+
+        boolean isMfd(String str) {
+            return mfdMode(str) >= 0;
+        }
+
+        int mfdMode(String str) {
+            String s = str.toLowerCase();
+            if (s.startsWith("arpt" )) return Avionics.MFD_MODE_ARPT;       // 0
+            if (s.startsWith("fpln" )) return Avionics.MFD_MODE_FPLN;       // 1
+            if (s.startsWith("rtu"  )) return Avionics.MFD_MODE_RTU;        // 2
+            if (s.startsWith("lower")) return Avionics.MFD_MODE_EICAS;      // 3
+            if (s.startsWith("eng"  )) return Avionics.MFD_MODE_ENGINE;     // also 3
+            if (s.startsWith("bleed")) return Avionics.MFD_MODE_BLEED;      // 4
+            if (s.startsWith("cab"  )) return Avionics.MFD_MODE_CAB_PRESS;  // 5
+            if (s.startsWith("press")) return Avionics.MFD_MODE_CAB_PRESS;  // also 5
+            if (s.startsWith("elec" )) return Avionics.MFD_MODE_ELEC;       // 6
+            if (s.startsWith("hyd"  )) return Avionics.MFD_MODE_HYDR;       // 7
+            if (s.startsWith("fuel" )) return Avionics.MFD_MODE_FUEL;       // 8
+            if (s.startsWith("apu"  )) return Avionics.MFD_MODE_APU;        // 9
+            if (s.startsWith("cond" )) return Avionics.MFD_MODE_COND;       // 10
+            if (s.startsWith("air"  )) return Avionics.MFD_MODE_COND;       // also 10
+            if (s.startsWith("door" )) return Avionics.MFD_MODE_DOOR_OXY;   // 11
+            if (s.startsWith("wheel")) return Avionics.MFD_MODE_WHEELS;     // 12
+            if (s.startsWith("fctl" )) return Avionics.MFD_MODE_FCTL;       // 13
+            if (s.startsWith("sys"  )) return Avionics.MFD_MODE_SYS;        // 14
+            if (s.startsWith("cruis")) return Avionics.MFD_MODE_SYS;        // also 14
+            if (s.startsWith("stat" )) return Avionics.MFD_MODE_STATUS;     // 15
+            return -1;
+        }
+    }
+
 
     // --------------------------------- xTIME --------------------------------
 
@@ -483,11 +754,18 @@ public class Buttons {
             if (key == null) {
                 key = getText();
                 oper = (int)s2float(key, -1);
+                if (oper < 0) {
+                    oper = (int)key.charAt(0);
+                }
             }
             xpdr = a.xpdr;
             switch (oper) {
                 case 0: case 1: case 2: case 3: {
                     set(""+xpdr.charAt(oper));
+                    break;
+                }
+                case 'I': {
+                    set(key);
                     break;
                 }
                 default: {
@@ -509,12 +787,175 @@ public class Buttons {
                     avionics.sendDataPoint(XPlaneSimDataRepository.SIM_COCKPIT_RADIOS_TRANSPONDER_CODE, (int)newval);
                     break;
                 }
+                case 'I': {
+                    EPI.sendCommand("cmd once sim/transponder/transponder_ident");
+                    break;
+                }
                 default: {
                     avionics.set_xpdr_mode(Math.abs(avionics.transponder_mode() + val) % mode.length);
                     break;
                 }
             }
         }
+    }
+
+    // --------------------------------- gDTO --------------------------------
+
+    static class gDTO extends Button {
+        void update(Analysis a) {
+        }
+        void click() {
+            EPI.sendCommand("cmd once sim/GPS/g430n1_direct");
+        }
+    }
+
+    // --------------------------------- gMENU --------------------------------
+
+    static class gMENU extends gDTO {
+        void click() {
+            EPI.sendCommand("cmd once sim/GPS/g430n1_menu");
+        }
+    }
+
+    // --------------------------------- gCLR --------------------------------
+
+    static class gCLR extends gDTO {
+        void click() {
+            EPI.sendCommand("cmd once sim/GPS/g430n1_clr");
+        }
+    }
+
+    // --------------------------------- gENT --------------------------------
+
+    static class gENT extends gDTO {
+        void click() {
+            EPI.sendCommand("cmd once sim/GPS/g430n1_ent");
+        }
+    }
+
+    // --------------------------------- gCDI --------------------------------
+
+    static class gCDI extends gDTO {
+        void click() {
+            EPI.sendCommand("cmd once sim/GPS/g430n1_cdi");
+        }
+    }
+
+    // --------------------------------- gOBS --------------------------------
+
+    static class gOBS extends gDTO {
+        void click() {
+            EPI.sendCommand("cmd once sim/GPS/g430n1_obs");
+        }
+    }
+
+    // --------------------------------- gMSG --------------------------------
+
+    static class gMSG extends gDTO {
+        void click() {
+            EPI.sendCommand("cmd once sim/GPS/g430n1_msg");
+        }
+    }
+
+    // --------------------------------- gFPL --------------------------------
+
+    static class gFPL extends gDTO {
+        void click() {
+            EPI.sendCommand("cmd once sim/GPS/g430n1_fpl");
+        }
+    }
+
+    // --------------------------------- gVNAV --------------------------------
+
+    static class gVNAV extends gDTO {
+        void click() {
+            EPI.sendCommand("cmd once sim/GPS/g430n1_vnav");
+        }
+    }
+
+    // --------------------------------- gPROC --------------------------------
+
+    static class gPROC extends gDTO {
+        void click() {
+            EPI.sendCommand("cmd once sim/GPS/g430n1_proc");
+        }
+    }
+
+    // --------------------------------- gVFF --------------------------------
+
+    static class gVFF extends gDTO {
+        void click() {
+            EPI.sendCommand("cmd once sim/GPS/g430n1_nav_ff");
+        }
+    }
+
+    // --------------------------------- gCFF --------------------------------
+
+    static class gCFF extends gDTO {
+        void click() {
+            EPI.sendCommand("cmd once sim/GPS/g430n1_com_ff");
+        }
+    }
+
+    // --------------------------------- gZOOM --------------------------------
+
+    static class gZOOM extends Number {
+        void update(Analysis a) {
+        }
+        void click(int value) {
+            if (value > 0) {
+                EPI.sendCommand("cmd once sim/GPS/g430n1_zoom_in");
+            } else {
+                EPI.sendCommand("cmd once sim/GPS/g430n1_zoom_out");
+            }
+        }
+    }
+
+    // --------------------------------- gFREQ --------------------------------
+
+    static class gFREQ extends gZOOM {
+        void click(int val, boolean right, boolean repeat) {            // Up / Down buttons
+            if (right) {
+                if (val > 0) {
+                    EPI.sendCommand("cmd once sim/GPS/g430n1_coarse_down");
+                } else {
+                    EPI.sendCommand("cmd once sim/GPS/g430n1_coarse_up");
+                }
+            } else {
+                if (val > 0) {
+                    EPI.sendCommand("cmd once sim/GPS/g430n1_fine_down");
+                } else {
+                    EPI.sendCommand("cmd once sim/GPS/g430n1_fine_up");
+                }
+            }
+        }
+        void click() {                                                  // Center label
+            EPI.sendCommand("cmd once sim/GPS/g430n1_nav_com_tog");
+        }
+    }
+
+    // --------------------------------- gCHPG --------------------------------
+
+    static class gCHPG extends gZOOM {
+        void click(int val, boolean right, boolean repeat) {            // Up / Down buttons
+            if (right) {
+                if (val > 0) {
+                    EPI.sendCommand("cmd once sim/GPS/g430n1_chapter_dn");
+                } else {
+                    EPI.sendCommand("cmd once sim/GPS/g430n1_chapter_up");
+                }
+            } else {
+                if (val > 0) {
+                    EPI.sendCommand("cmd once sim/GPS/g430n1_page_dn");
+                } else {
+                    EPI.sendCommand("cmd once sim/GPS/g430n1_page_up");
+                }
+            }
+        }
+        void click() {                                                  // Center label
+            EPI.sendCommand("cmd once sim/GPS/g430n1_cursor");
+        }
+
     }
 
     // --------------------------------- hGPS --------------------------------
@@ -583,16 +1024,41 @@ public class Buttons {
 
     // --------------------------------- aAP --------------------------------
 
+    static boolean ap_show_mode_1 = true;
+
     static class aAP extends Button {
+        int ap_mode;
         void update(Analysis a) {
-            set(a.ap_mode == 2, a.ap_mode == 1);
-            if (a.p.warn_no_ap && a.ap_mode < 2) {
-                Color c = (a.ap_mode == 0) ? Color.RED : Color.YELLOW;
-                box(c, !a.fs.autopilotWasOn);
+            ap_mode = a.ap_mode;
+            set(ap_mode == 2, ap_mode == 1 && ap_show_mode_1);
+            if (a.p.warn_no_ap && ap_mode < 2) {
+                Color c = a.fs.autopilotWasOn ? Color.RED : Color.YELLOW;
+                box(c, a.fs.autopilotWasOn);
             }
         }
+        void click(boolean right) {
+            if ((right && ap_mode == 1) || (ap_show_mode_1 && ap_mode == 0)) {
+                EPI.sendCommand("cmd once sim/autopilot/fdir_toggle");
+            } else {
+                EPI.sendCommand("cmd once sim/autopilot/servos_toggle");
+            }
+        }
+    }
+
+    // --------------------------------- aFD --------------------------------
+
+    static class aFD extends Button {
+        int ap_mode;
+        void update(Analysis a) {
+            ap_mode = a.ap_mode;
+            set(ap_mode == 1);
+            ap_show_mode_1 = false;
+
+        }
         void click() {
-            avionics.send_ap_key_press(2);
+            if (ap_mode < 2) {
+                EPI.sendCommand("cmd once sim/autopilot/fdir_toggle");
+            }
         }
     }
 
@@ -603,7 +1069,9 @@ public class Buttons {
             set(avionics.ap_vnav_on(), avionics.ap_vnav_arm());
         }
         void click() {
-            // ????
+            EPI.setInt("sim/operation/override/override_autopilot", 1);
+            EPI.setInt("sim/cockpit/autopilot/autopilot_state", 4096);   // Toggle vnav
+            EPI.setInt("sim/operation/override/override_autopilot", 0);
         }
     }
 
@@ -611,7 +1079,11 @@ public class Buttons {
 
     static class aTHR extends ApSlave {
         void update2(Analysis a) {
-            set(avionics.autothrottle_on(), avionics.autothrottle_enabled());
+            int state = avionics.autothrottle_on() ? 2 : avionics.autothrottle_enabled() ? 1 : 0;
+            set(state == 2, state == 1);
+            if (state < 2) {
+                box(Color.YELLOW, a.fs.autopilotWasOn && !avionics.ap_flch_on());
+            }
         }
         void click() {
             avionics.send_ap_key_press(3);
@@ -635,12 +1107,12 @@ public class Buttons {
     static class aHDG extends ApSlave {
         void update2(Analysis a) {
             set(avionics.ap_hdg_sel_on());
-            if (a.p.warn_hsel  && a.hsel) {
+            if (a.hsel_error) {
                 box(Color.YELLOW, false);
             }
         }
         void click() {
-            avionics.send_ap_key_press(5);
+            avionics.send_ap_key_press(5); // sim/autopilot/heading
         }
     }
 
@@ -648,7 +1120,7 @@ public class Buttons {
 
     static class aVS extends ApSlave {
         void update2(Analysis a) {
-            box(a.a_vs_box, a.warn_aoa || a.error_aoa);
+            box(a.a_vs_box, a.warn_aoa || a.error_aoa || (a.vvi_warn && a.ap_vs_on));
             set(avionics.ap_vs_on(), avionics.ap_vs_arm());
         }
         void click() {
@@ -672,6 +1144,9 @@ public class Buttons {
     static class aGS extends ApSlave {
         void update2(Analysis a) {
             set(avionics.ap_gs_on(), avionics.ap_gs_arm());
+            if (a.warn_gs) {
+                box(Color.YELLOW, true);
+            }
         }
         void click() {
             avionics.send_ap_key_press(9);
@@ -706,15 +1181,15 @@ public class Buttons {
     static class aWLV extends ApSlave {
         void update2(Analysis a) {
             set(a.wlv);
-            if (a.p.warn_hsel  && a.wlv) {
-                box(Color.YELLOW);
+            if (a.p.warn_hsel && a.wlv) {
+                box(Color.YELLOW, false);
             }
         }
         void click() {
             if (avionics.ap_hdg_sel_on()) {
-                avionics.send_ap_key_press(5);
+                avionics.send_ap_key_press(5);                                  // sim/autopilot/heading
             } else if (avionics.ap_vorloc_on() || avionics.ap_lnav_on()) {
-                avionics.send_ap_key_press(7);
+                avionics.send_ap_key_press(7);                                  // sim/autopilot/nav
             }
         }
     }
@@ -769,7 +1244,18 @@ public class Buttons {
         void update(Analysis a) {
             set(settings.getZoomRange(avionics.map_range_index(), avionics.map_zoomin()));
         }
-        void click(int value) {
+
+        void click(boolean right) {                                         // Number display
+            if (right) {
+                JXMap.setMode(JXMap.OFF);
+            } else {
+                int mode = JXMap.getMode();
+                JXMap.setMode(mode == JXMap.STREET ? JXMap.SATELLITE : JXMap.STREET);
+            }
+        }
+
+
+        void click(int value, boolean right, boolean repeat) {              // Up & down buttons
             if (value > 0) {
                 settings.mapZoomOut();
             } else {
@@ -903,6 +1389,94 @@ public class Buttons {
         }
     }
 
+    // --------------------------------- cBRK --------------------------------
+
+    static class cBRK extends Button {
+        void update(Analysis a) {
+            float brk = EPI.getFloat("sim/flightmodel/controls/parkbrake", 0);
+            set(brk == 1);
+            if (brk > 0) {
+                box(Color.RED, false);
+            }
+
+        }
+        void click() {
+            EPI.sendCommand("cmd once sim/flight_controls/brakes_toggle_max");
+            System.out.println("Break applied at location: " + aircraft.lat() + " - " + aircraft.lon());
+        }
+    }
+
+
+    // --------------------------------- cPH --------------------------------
+
+    static class cPH extends Button {
+        boolean ph;
+        void update(Analysis a) {
+            ph = EPI.getInt("sim/cockpit2/ice/ice_pitot_heat_on_pilot", 0) == 1;
+            set(ph);
+            if (!ph) {
+                box(Color.RED, false);
+            }
+
+        }
+        void click() {
+            EPI.sendCommand("cmd once sim/ice/pitot_heat0_" + ((ph) ? "off" : "on"));
+        }
+    }
+
+    // --------------------------------- cYD --------------------------------
+
+    static class cYD extends Button {
+        void update(Analysis a) {
+            boolean yd = EPI.getInt("sim/cockpit2/switches/yaw_damper_on", 0) == 1;
+            set(yd);
+        }
+        void click() {
+            EPI.sendCommand("cmd once sim/systems/yaw_damper_toggle");
+        }
+    }
+
+    // --------------------------------- cFDN --------------------------------
+
+    static class cFDN extends Button {
+        void update(Analysis a) {
+        }
+        void click() {
+            EPI.sendCommand("cmd once sim/flight_controls/flaps_down");
+        }
+    }
+
+    // --------------------------------- cFUP --------------------------------
+
+    static class cFUP extends Button {
+        void update(Analysis a) {
+        }
+        void click() {
+            EPI.sendCommand("cmd once sim/flight_controls/flaps_up");
+        }
+    }
+
+
+    // --------------------------------- cGDN --------------------------------
+
+    static class cGDN extends Button {
+        void update(Analysis a) {
+        }
+        void click() {
+            EPI.sendCommand("cmd once sim/flight_controls/landing_gear_down");
+        }
+    }
+
+    // --------------------------------- cGUP --------------------------------
+
+    static class cGUP extends Button {
+        void update(Analysis a) {
+        }
+        void click() {
+            EPI.sendCommand("cmd once sim/flight_controls/landing_gear_up");
+        }
+    }
+
     // --------------------------------- mAPP --------------------------------
 
     static class mAPP extends Button {
@@ -925,9 +1499,9 @@ public class Buttons {
         }
     }
 
-    // --------------------------------- mNAV --------------------------------
+    // --------------------------------- mMAP --------------------------------
 
-    static class mNAV extends Button {
+    static class mMAP extends Button {
         void update(Analysis a) {
             set(a.mp_smode == Avionics.EFIS_MAP_MAP);
         }
@@ -936,9 +1510,9 @@ public class Buttons {
         }
     }
 
-    // --------------------------------- mARC --------------------------------
+    // --------------------------------- mNAV --------------------------------
 
-    static class mARC extends Button {
+    static class mNAV extends Button {
         void update(Analysis a) {
             set(a.mp_smode == Avionics.EFIS_MAP_NAV);
         }
@@ -957,6 +1531,20 @@ public class Buttons {
             settings.setMode(Avionics.EFIS_MAP_PLN);
         }
     }
+
+    // --------------------------------- mCTR --------------------------------
+
+    static class mCTR extends Button {
+        int mode;
+        void update(Analysis a) {
+            mode = a.mp_mode;
+            set(mode == Avionics.EFIS_MAP_CENTERED);
+        }
+        void click() {
+            avionics.set_mode(mode == Avionics.EFIS_MAP_CENTERED ? Avionics.EFIS_MAP_EXPANDED : Avionics.EFIS_MAP_CENTERED);
+        }
+    }
+
 
     // --------------------------------- sARPT --------------------------------
 
@@ -1054,19 +1642,21 @@ public class Buttons {
 
     // --------------------------------- cGEAR --------------------------------
 
+//System.out.println(" a.bad_climb="+a.bad_climb+" gear_warning="+a.gear_warning+" a.gear_unsafe="+a.gear_unsafe+" a.gear_not_up="+a.gear_not_up);
+
     static class cGEAR extends Button {
         void update(Analysis a) {
-            if (a.gear_dn) {
-                if (a.bad_climb && a.p.warn_bgf) {
-                    box(Color.RED, a.bad_climb || aircraft.gear_warning());
+            if (a.gear_not_up || a.gear_unsafe || a.gear_warning || (a.bad_climb && a.gear_not_up)) {
+                Color c = Color.RED;
+                if (a.p.warn_bgf && (a.bad_climb || a.gear_warning)) {
+                    box(Color.RED, true /*a.gear_warning*/ );
                 }
-                if (aircraft.gear_warning()) {
-                    color(Color.RED);
-                } else if (aircraft.gear_unsafe()) {
-                    color(Color.YELLOW);
-                } else {
-                    color(Color.GREEN);
+                if (a.gear_unsafe) {
+                    c = Color.YELLOW;
+                } else if (a.gear_is_down) {
+                    c = Color.GREEN;
                 }
+                color(c);
                 set("GEAR");
             } else {
                 set("");
@@ -1113,6 +1703,15 @@ public class Buttons {
         }
     }
 
+    // --------------------------------- cFPMN --------------------------------
+
+    static class cFPMN extends Button {
+        void update(Analysis a) {
+            String str = ""+a.ff_perMN;
+            set(str);
+        }
+    }
+
     // --------------------------------- cFUEL --------------------------------
 
     static class cFUEL extends Button {
@@ -1127,7 +1726,7 @@ public class Buttons {
     static class cRNGE extends Button {
         void update(Analysis a) {
             color(a.low_fuel ? Color.YELLOW : Color.WHITE);
-            set(a.rnge);
+            set(a.ff_rnge);
         }
     }
 
@@ -1136,7 +1735,7 @@ public class Buttons {
     static class cENDU extends Button {
         void update(Analysis a) {
             color(a.low_fuel ? Color.YELLOW : Color.WHITE);
-            set(a.endu);
+            set(a.ff_endu);
         }
     }
 
@@ -1238,5 +1837,15 @@ public class Buttons {
             set(a.target_dist);
         }
     }
-}
 
+    // --------------------------------- cETE --------------------------------
+
+    static class cETE extends Button {
+        void update(Analysis a) {
+            int hours = (int)a.target_ete;
+            int mins  = (int)((a.target_ete - hours) * 60);
+            String str = "" + hours + (":" + mins+ "0").substring(0, 3);
+            set(str);
+        }
+    }
+}

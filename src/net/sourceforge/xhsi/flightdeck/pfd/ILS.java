@@ -1,27 +1,27 @@
 /**
 * ILS.java
-* 
+*
 * ILS CDI, GS and label on the PFD
-* 
+*
 * Copyright (C) 2010  Marc Rogiers (marrog.123@gmail.com)
-* 
+*
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2 
+* as published by the Free Software Foundation; either version 2
 * of the License, or (at your option) any later version.
 *
 * This library is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU Lesser General Public
 * License along with this library; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 package net.sourceforge.xhsi.flightdeck.pfd;
 
-//import java.awt.Color;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Graphics2D;
 import java.text.DecimalFormat;
@@ -138,6 +138,7 @@ public class ILS extends PFDSubcomponent {
             }
         }
 
+
         int source = this.avionics.hsi_source();
 
         if (source == Avionics.HSI_SOURCE_NAV1) {
@@ -171,13 +172,15 @@ public class ILS extends PFDSubcomponent {
                 nav_type = nav1_type;
             }
         } else /* if (source == Avionics.HSI_SOURCE_GPS) */ {
-            if ( nav1_receive ) {
-                mismatch = true;
-                nav_type = nav1_type;
-            } else if ( nav2_receive ) {
-                mismatch = true;
-                nav_type = nav2_type;
-            }
+                mismatch = false;
+                nav_type = "FMC";
+                cdi_value = this.avionics.gps_hdef_dot();
+                nav_receive = cdi_value != 0.0f;
+                crs = Math.round( this.avionics.gps_course() );
+                obs = crs;
+                gs_active = this.avionics.gps_gs_active();
+                gs_value = this.avionics.gps_vdef_dot();
+                dme = -1.0f;
         }
 
 
@@ -233,11 +236,13 @@ public class ILS extends PFDSubcomponent {
                 g2.setColor(pfd_gc.markings_color);
             }
             // DME
-            ref_y += ref_h_m;
-            if ( ( dme == 0.0f ) || ( dme >= 99.0f ) ) {
-                g2.drawString("DME ---", ref_x, ref_y);
-            } else {
-                g2.drawString("DME " + dme_formatter.format( dme ), ref_x, ref_y);
+            if ( source != Avionics.HSI_SOURCE_GPS ) {
+                ref_y += ref_h_m;
+                if ( ( dme == 0.0f ) || ( dme >= 99.0f ) ) {
+                    g2.drawString("DME ---", ref_x, ref_y);
+                } else {
+                    g2.drawString("DME " + dme_formatter.format( dme ), ref_x, ref_y);
+                }
             }
             // Type
             ref_y += ref_h_l;
@@ -300,12 +305,35 @@ public class ILS extends PFDSubcomponent {
             int diamond_x[] = { gs_x - diamond_w, gs_x, gs_x + diamond_w, gs_x };
             int diamond_y[] = { gs_y + gs_pixels, gs_y + gs_pixels + diamond_h, gs_y + gs_pixels, gs_y + gs_pixels - diamond_h };
 
+/*
             g2.setColor(pfd_gc.nav_needle_color);
             if (Math.abs(gs_value) < 2.49f) {
                 g2.drawPolygon(diamond_x, diamond_y, 4);
                 g2.fillPolygon(diamond_x, diamond_y, 4);
             } else {
                 g2.drawPolygon(diamond_x, diamond_y, 4);
+            }
+*/
+            if (gs_active) {
+                Color c = pfd_gc.nav_needle_color;
+                boolean fill = false;
+                if (Math.abs(gs_value) < 2.49f) {
+                    fill = true;
+                    if (avionics.ap_gs_on()) {
+                        // Color is good  ;
+                    } else if (avionics.ap_gs_arm()) {
+                        c = new Color(0xFFAA80); // Bright Amber   ;
+                    } else {
+                        c = Color.WHITE;
+                        fill = (System.currentTimeMillis() % 500) > 250;
+                    }
+                }
+                g2.setColor(c);
+                if (fill) {
+                    g2.fillPolygon(diamond_x, diamond_y, 4);
+                } else {
+                    g2.drawPolygon(diamond_x, diamond_y, 4);
+                }
             }
 
             g2.setColor(pfd_gc.markings_color);

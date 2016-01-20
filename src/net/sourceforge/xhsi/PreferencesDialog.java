@@ -56,9 +56,9 @@ import net.sourceforge.xhsi.flightdeck.eicas.EICASComponent;
 import net.sourceforge.xhsi.flightdeck.mfd.MFDComponent;
 import net.sourceforge.xhsi.flightdeck.annunciators.AnnunComponent;
 import net.sourceforge.xhsi.flightdeck.clock.ClockComponent;
+import net.sourceforge.xhsi.flightdeck.cdu.CDUComponent;
 import net.sourceforge.xhsi.flightdeck.command.CmdComponent;
 import net.sourceforge.xhsi.flightdeck.command.CmdConfigurator;
-
 
 
 public class PreferencesDialog extends JDialog implements ActionListener {
@@ -82,7 +82,7 @@ public class PreferencesDialog extends JDialog implements ActionListener {
     private JCheckBox panel_locked_checkbox;
     private JButton get_button;
 
-    private static final int FIXED_WINS = 7; // Empty, PFD, ND, EICAS, MFD, Annunciators, and Clock
+    private static final int FIXED_WINS = 8; // Empty, PFD, ND, EICAS, MFD, Annunciators, Clock and CDU
     private static final int MAX_WINS = FIXED_WINS + CmdConfigurator.MAX_WINS;
 
     static int win_count() {
@@ -97,6 +97,7 @@ public class PreferencesDialog extends JDialog implements ActionListener {
     private JTextField panel_width_textfield[] = new JTextField[MAX_WINS];
     private JTextField panel_height_textfield[] = new JTextField[MAX_WINS];
     private JTextField panel_border_textfield[] = new JTextField[MAX_WINS];
+    private JTextField panel_fscale_textfield[] = new JTextField[MAX_WINS];
     private JCheckBox panel_square_checkbox[] = new JCheckBox[MAX_WINS];
     private JComboBox panel_orientation_combobox[] = new JComboBox[MAX_WINS];
 
@@ -140,6 +141,7 @@ public class PreferencesDialog extends JDialog implements ActionListener {
     private JCheckBox bold_fonts_checkbox;
     private JCheckBox nd_navaid_frequencies;
     private JCheckBox nd_write_ap_hdg;
+    private JCheckBox nd_show_clock;
     private JCheckBox arpt_chart_nav_dest;
 
     private int du_pos_x[] = new int[MAX_WINS];
@@ -160,6 +162,12 @@ public class PreferencesDialog extends JDialog implements ActionListener {
     private JCheckBox colored_hsi_course_checkbox;
     private JCheckBox draw_radios_checkbox;
     private JCheckBox adi_centered_checkbox;
+    private JCheckBox draw_twinspeeds_checkbox;
+    private JCheckBox draw_turnrate_checkbox;
+    private JCheckBox draw_gmeter_checkbox;
+    private JComboBox draw_yoke_input_combobox;
+    private String draw_yoke_input[] = { XHSIPreferences.YOKE_INPUT_NONE, XHSIPreferences.YOKE_INPUT_AUTO, XHSIPreferences.YOKE_INPUT_RUDDER, XHSIPreferences.YOKE_INPUT_ALWAYS, XHSIPreferences.YOKE_INPUT_ALWAYS_RUDDER };
+
 
     private JComboBox eicas_layout_combobox;
     private final String[] eicas_layouts = { XHSIPreferences.EICAS_LAYOUT_PRIMARY, XHSIPreferences.EICAS_LAYOUT_PRIMARY_AND_CONTROLS, XHSIPreferences.EICAS_LAYOUT_FULL };
@@ -172,9 +180,32 @@ public class PreferencesDialog extends JDialog implements ActionListener {
     private String fuel_units[] = { XHSIPreferences.FUEL_UNITS_SWITCHABLE, XHSIPreferences.FUEL_UNITS_KG, XHSIPreferences.FUEL_UNITS_LBS, XHSIPreferences.FUEL_UNITS_USG, XHSIPreferences.FUEL_UNITS_LTR };
 
     private JComboBox mfd_mode_combobox;
-    private String mfd_modes[] = { XHSIPreferences.MFD_MODE_SWITCHABLE, XHSIPreferences.MFD_MODE_ARPT_CHART , XHSIPreferences.MFD_MODE_FPLN, XHSIPreferences.MFD_MODE_LOWER_EICAS, XHSIPreferences.MFD_MODE_RTU };
+    private String mfd_modes[] = {
+            XHSIPreferences.MFD_MODE_SWITCHABLE,
+            XHSIPreferences.MFD_MODE_LINKED,
+            XHSIPreferences.MFD_MODE_ARPT_CHART,
+            XHSIPreferences.MFD_MODE_FPLN,
+            XHSIPreferences.MFD_MODE_RTU,
+            XHSIPreferences.MFD_MODE_LOWER_EICAS,
+            XHSIPreferences.MFD_MODE_BLEED,
+            XHSIPreferences.MFD_MODE_CAB_PRESS,
+            XHSIPreferences.MFD_MODE_ELEC,
+            XHSIPreferences.MFD_MODE_HYDR,
+            XHSIPreferences.MFD_MODE_FUEL,
+            XHSIPreferences.MFD_MODE_APU,
+            XHSIPreferences.MFD_MODE_COND,
+            XHSIPreferences.MFD_MODE_DOOR_OXY,
+            XHSIPreferences.MFD_MODE_WHEELS,
+            XHSIPreferences.MFD_MODE_FCTL,
+                XHSIPreferences.MFD_MODE_SYS,
+            XHSIPreferences.MFD_MODE_STATUS };
+
     private JComboBox arpt_chart_color_combobox;
     private String arpt_chart_colors[] = { XHSIPreferences.ARPT_DIAGRAM_COLOR_AUTO, XHSIPreferences.ARPT_DIAGRAM_COLOR_DAY, XHSIPreferences.ARPT_DIAGRAM_COLOR_NIGHT };
+
+    private JCheckBox cdu_display_only;
+    private JComboBox cdu_source_combobox;
+    private String cdu_sources[] = { XHSIPreferences.CDU_SOURCE_SWITCHABLE, XHSIPreferences.CDU_SOURCE_AIRCRAFT_OR_DUMMY, XHSIPreferences.CDU_SOURCE_XFMC, XHSIPreferences.CDU_SOURCE_UFMC };
 
 
     private ArrayList<XHSIInstrument> flightdeck;
@@ -284,6 +315,7 @@ public class PreferencesDialog extends JDialog implements ActionListener {
             this.panel_width_textfield[j].setText( "" + preferences.get_panel_width(j) );
             this.panel_height_textfield[j].setText( "" + preferences.get_panel_height(j) );
             this.panel_border_textfield[j].setText( "" + preferences.get_panel_border(j) );
+            this.panel_fscale_textfield[j].setText( "" + preferences.get_panel_fscale(j) );
 
             this.panel_square_checkbox[j].setSelected( preferences.get_panel_square(j) );
 
@@ -349,6 +381,8 @@ public class PreferencesDialog extends JDialog implements ActionListener {
 
         this.nd_write_ap_hdg.setSelected(preferences.get_preference(XHSIPreferences.PREF_ND_WRITE_AP_HDG).equalsIgnoreCase("true"));
 
+        this.nd_show_clock.setSelected(preferences.get_preference(XHSIPreferences.PREF_ND_SHOW_CLOCK).equalsIgnoreCase("true"));
+
 
         // PFD Options (3)
 
@@ -375,6 +409,12 @@ public class PreferencesDialog extends JDialog implements ActionListener {
         this.draw_radios_checkbox.setSelected(preferences.get_preference(XHSIPreferences.PREF_PFD_DRAW_RADIOS).equalsIgnoreCase("true"));
 
         this.adi_centered_checkbox.setSelected(preferences.get_preference(XHSIPreferences.PREF_PFD_ADI_CENTERED).equalsIgnoreCase("true"));
+
+        this.draw_twinspeeds_checkbox.setSelected(preferences.get_preference(XHSIPreferences.PREF_PFD_DRAW_TWINSPEEDS).equalsIgnoreCase("true"));
+
+        this.draw_turnrate_checkbox.setSelected(preferences.get_preference(XHSIPreferences.PREF_PFD_DRAW_TURNRATE).equalsIgnoreCase("true"));
+
+        this.draw_gmeter_checkbox.setSelected(preferences.get_preference(XHSIPreferences.PREF_PFD_DRAW_GMETER).equalsIgnoreCase("true"));
 
 
         // EICAS Options (5)
@@ -429,6 +469,18 @@ public class PreferencesDialog extends JDialog implements ActionListener {
         this.arpt_chart_nav_dest.setSelected(preferences.get_preference(XHSIPreferences.PREF_ARPT_CHART_NAV_DEST).equalsIgnoreCase("true"));
 
 
+        // CDU Options (2)
+
+        this.cdu_display_only.setSelected(preferences.get_preference(XHSIPreferences.PREF_CDU_DISPLAY_ONLY).equalsIgnoreCase("true"));
+
+        String cdu_source = preferences.get_preference(XHSIPreferences.PREF_CDU_SOURCE);
+        for (int i=0; i<cdu_sources.length; i++) {
+            if ( cdu_source.equals( cdu_sources[i] ) ) {
+                this.cdu_source_combobox.setSelectedIndex(i);
+            }
+        }
+
+
     }
 
 
@@ -443,6 +495,7 @@ public class PreferencesDialog extends JDialog implements ActionListener {
         tabs_panel.add( "ND", create_nd_options_tab() );
         tabs_panel.add( "EICAS", create_eicas_options_tab() );
         tabs_panel.add( "MFD", create_mfd_options_tab() );
+        tabs_panel.add( "CDU", create_cdu_options_tab() );
         tabs_panel.add( "Commander", create_cmd_options_tab() );
 
 
@@ -720,7 +773,7 @@ public class PreferencesDialog extends JDialog implements ActionListener {
         GridBagConstraints subcons = new GridBagConstraints();
 
         int col = 2;
-        String[] colheader = { " Display ", " Left ", " Top ", " Width ", " Height ", " Border ", " Square ", " Orientation " };
+        String[] colheader = { " Display ", " Left ", " Top ", " Width ", " Height ", " Border ", " FScale ", " Square ", " Orientation " };
         for (String head : colheader) {
                 subcons.gridx = col;
                 subcons.gridwidth = 1;
@@ -798,6 +851,15 @@ public class PreferencesDialog extends JDialog implements ActionListener {
             this.panel_border_textfield[i] = new JTextField(3);
             this.panel_border_textfield[i].setToolTipText("Border size for " + descr);
             if ( i > 0 ) sub_panel.add(this.panel_border_textfield[i], subcons);
+            subdialog_column++;
+
+            // panel font scale
+            subcons.gridx = subdialog_column;
+            subcons.gridy = subdialog_line;
+            subcons.anchor = GridBagConstraints.CENTER;
+            this.panel_fscale_textfield[i] = new JTextField(3);
+            this.panel_fscale_textfield[i].setToolTipText("Font scale adjust for " + descr);
+            if ( i > 0 ) sub_panel.add(this.panel_fscale_textfield[i], subcons);
             subdialog_column++;
 
             // Draw square window
@@ -1239,6 +1301,68 @@ public class PreferencesDialog extends JDialog implements ActionListener {
         pfd_options_panel.add(this.adi_centered_checkbox, cons);
         dialog_line++;
 
+        // Draw Vmca (red) and Vyse (blue) lines
+        cons.gridx = 0;
+        cons.gridwidth = 1;
+        cons.gridy = dialog_line;
+        cons.anchor = GridBagConstraints.EAST;
+        pfd_options_panel.add(new JLabel("Draw Vmca (red) and Vyse (blue) lines", JLabel.TRAILING), cons);
+        cons.gridx = 2;
+        cons.gridwidth = 1;
+        cons.gridy = dialog_line;
+        cons.anchor = GridBagConstraints.WEST;
+        this.draw_twinspeeds_checkbox = new JCheckBox();
+        pfd_options_panel.add(this.draw_twinspeeds_checkbox, cons);
+        dialog_line++;
+
+        // Draw turn rate indicator
+        cons.gridx = 0;
+        cons.gridwidth = 1;
+        cons.gridy = dialog_line;
+        cons.anchor = GridBagConstraints.EAST;
+        pfd_options_panel.add(new JLabel("Draw turn rate indicator", JLabel.TRAILING), cons);
+        cons.gridx = 2;
+        cons.gridwidth = 1;
+        cons.gridy = dialog_line;
+        cons.anchor = GridBagConstraints.WEST;
+        this.draw_turnrate_checkbox = new JCheckBox();
+        pfd_options_panel.add(this.draw_turnrate_checkbox, cons);
+        dialog_line++;
+
+        // Draw G-meter
+        cons.gridx = 0;
+        cons.gridwidth = 1;
+        cons.gridy = dialog_line;
+        cons.anchor = GridBagConstraints.EAST;
+        pfd_options_panel.add(new JLabel("Draw G-meter", JLabel.TRAILING), cons);
+        cons.gridx = 2;
+        cons.gridwidth = 1;
+        cons.gridy = dialog_line;
+        cons.anchor = GridBagConstraints.WEST;
+        this.draw_gmeter_checkbox = new JCheckBox();
+        pfd_options_panel.add(this.draw_gmeter_checkbox, cons);
+        dialog_line++;
+
+        // Draw yoke and rudder input
+        cons.gridx = 0;
+        cons.gridwidth = 1;
+        cons.gridy = dialog_line;
+        cons.anchor = GridBagConstraints.EAST;
+        pfd_options_panel.add(new JLabel("Draw yoke input", JLabel.TRAILING), cons);
+        cons.gridx = 2;
+        cons.gridwidth = 1;
+        cons.gridy = dialog_line;
+        cons.anchor = GridBagConstraints.WEST;
+        this.draw_yoke_input_combobox = new JComboBox();
+        this.draw_yoke_input_combobox.addItem("None");
+        this.draw_yoke_input_combobox.addItem("Auto - Yoke only");
+        this.draw_yoke_input_combobox.addItem("Auto - Yoke, rudder, brakes");
+        this.draw_yoke_input_combobox.addItem("Always - Yoke only");
+        this.draw_yoke_input_combobox.addItem("Always - Yoke, rudder, brakes");
+        this.draw_yoke_input_combobox.addActionListener(this);
+        pfd_options_panel.add(this.draw_yoke_input_combobox, cons);
+        dialog_line++;
+
 
 //        // A reminder
 //        cons.gridx = 2;
@@ -1452,7 +1576,7 @@ public class PreferencesDialog extends JDialog implements ActionListener {
         cons.gridwidth = 1;
         cons.gridy = dialog_line;
         cons.anchor = GridBagConstraints.EAST;
-        nd_options_panel.add(new JLabel("Display navaid frequencies on the map", JLabel.TRAILING), cons);
+        nd_options_panel.add(new JLabel("Display navaid frequencies and airport altitudes on the map", JLabel.TRAILING), cons);
         cons.gridx = 2;
         cons.gridwidth = 1;
         cons.gridy = dialog_line;
@@ -1471,8 +1595,22 @@ public class PreferencesDialog extends JDialog implements ActionListener {
         cons.gridwidth = 1;
         cons.gridy = dialog_line;
         cons.anchor = GridBagConstraints.WEST;
-        this.nd_write_ap_hdg = new JCheckBox("  (if the window is wide enough)");
+        this.nd_write_ap_hdg = new JCheckBox();
         nd_options_panel.add(this.nd_write_ap_hdg, cons);
+        dialog_line++;
+
+        // Show the Clock/Chronograph at the bottom
+        cons.gridx = 0;
+        cons.gridwidth = 1;
+        cons.gridy = dialog_line;
+        cons.anchor = GridBagConstraints.EAST;
+        nd_options_panel.add(new JLabel("Show the Clock/Chronograph at the bottom", JLabel.TRAILING), cons);
+        cons.gridx = 2;
+        cons.gridwidth = 1;
+        cons.gridy = dialog_line;
+        cons.anchor = GridBagConstraints.WEST;
+        this.nd_show_clock = new JCheckBox();
+        nd_options_panel.add(this.nd_show_clock, cons);
         dialog_line++;
 
 //        // A reminder
@@ -1636,11 +1774,24 @@ public class PreferencesDialog extends JDialog implements ActionListener {
         cons.anchor = GridBagConstraints.WEST;
         this.mfd_mode_combobox = new JComboBox();
         this.mfd_mode_combobox.addItem("Switchable");
-        //this.mfd_mode_combobox.addItem("Taxi Chart");
+        this.mfd_mode_combobox.addItem("Linked (QPAC)");
         this.mfd_mode_combobox.addItem("Airport Chart");
         this.mfd_mode_combobox.addItem("Flight Plan");
-        this.mfd_mode_combobox.addItem("Lower EICAS");
         this.mfd_mode_combobox.addItem("RTU Display");
+        this.mfd_mode_combobox.addItem("Lower EICAS");
+        this.mfd_mode_combobox.addItem("Bleed air");
+        this.mfd_mode_combobox.addItem("Pressurisation");
+        this.mfd_mode_combobox.addItem("Electrics");
+        this.mfd_mode_combobox.addItem("Hydraulics");
+        this.mfd_mode_combobox.addItem("Fuel");
+        this.mfd_mode_combobox.addItem("APU");
+        this.mfd_mode_combobox.addItem("Air Conditionning");
+        this.mfd_mode_combobox.addItem("Doors / Oxygen");
+        this.mfd_mode_combobox.addItem("Wheels");
+        this.mfd_mode_combobox.addItem("Flight Controls");
+        this.mfd_mode_combobox.addItem("Cruise");
+        this.mfd_mode_combobox.addItem("Status");
+
         this.mfd_mode_combobox.addActionListener(this);
         mfd_options_panel.add(this.mfd_mode_combobox, cons);
         dialog_line++;
@@ -1681,6 +1832,58 @@ public class PreferencesDialog extends JDialog implements ActionListener {
 
     }
 
+
+    private JPanel create_cdu_options_tab() {
+
+        GridBagLayout layout = new GridBagLayout();
+        GridBagConstraints cons = new GridBagConstraints();
+        JPanel cdu_options_panel = new JPanel(layout);
+
+        cons.ipadx = 10;
+        cons.ipady = 0;
+        cons.insets = new Insets(2, 5, 0, 0);
+
+        int dialog_line = 0;
+
+        // CDU layout
+        cons.gridx = 0;
+        cons.gridwidth = 1;
+        cons.gridy = dialog_line;
+        cons.anchor = GridBagConstraints.EAST;
+        cdu_options_panel.add(new JLabel("CDU display only, without keyboard", JLabel.TRAILING), cons);
+        cons.gridx = 2;
+        cons.gridwidth = 1;
+        cons.gridy = dialog_line;
+        cons.anchor = GridBagConstraints.WEST;
+        this.cdu_display_only = new JCheckBox();
+        cdu_options_panel.add(this.cdu_display_only, cons);
+        dialog_line++;
+
+        // CDU source
+        cons.gridx = 0;
+        cons.gridwidth = 1;
+        cons.gridy = dialog_line;
+        cons.anchor = GridBagConstraints.EAST;
+        cdu_options_panel.add(new JLabel("CDU source", JLabel.TRAILING), cons);
+        cons.gridx = 2;
+        cons.gridwidth = 1;
+        cons.gridy = dialog_line;
+        cons.anchor = GridBagConstraints.WEST;
+        this.cdu_source_combobox = new JComboBox();
+        this.cdu_source_combobox.addItem("Switchable");
+        this.cdu_source_combobox.addItem("Aircraft's custom FMC (or a dummy)");
+        this.cdu_source_combobox.addItem("X-FMC");
+        // TODO : for beta 9
+        // this.cdu_source_combobox.addItem("UFMC or X737FMC");
+        this.cdu_source_combobox.addActionListener(this);
+        cdu_options_panel.add(this.cdu_source_combobox, cons);
+        dialog_line++;
+
+        return cdu_options_panel;
+
+    }
+
+
     private JScrollPane create_cmd_options_tab() {
         final CmdConfigurator conf = CmdConfigurator.getInstance();
         cmd_panel = new PropertiesPanel(
@@ -1693,7 +1896,7 @@ public class PreferencesDialog extends JDialog implements ActionListener {
             }
         );
         JScrollPane scrollPane = new JScrollPane(cmd_panel);
-        setPreferredSize(new Dimension(800, 500));
+        setPreferredSize(new Dimension(800, 600));
         add(scrollPane, BorderLayout.CENTER);
         return scrollPane;
     }
@@ -1704,7 +1907,6 @@ public class PreferencesDialog extends JDialog implements ActionListener {
         }
         super.setVisible(value);
     }
-
 
 
     private JPanel create_dialog_buttons_panel() {
@@ -1784,6 +1986,7 @@ public class PreferencesDialog extends JDialog implements ActionListener {
             this.panel_width_textfield[i].setEnabled( active & lock );
             this.panel_height_textfield[i].setEnabled( active & lock );
             this.panel_border_textfield[i].setEnabled( active & lock );
+            this.panel_fscale_textfield[i].setEnabled( active & lock );
             this.panel_square_checkbox[i].setEnabled( active );
             this.panel_orientation_combobox[i].setEnabled( active );
         }
@@ -1821,6 +2024,9 @@ public class PreferencesDialog extends JDialog implements ActionListener {
                         break;
                     case XHSIInstrument.CLOCK_ID :
                         ((ClockComponent)du.components).forceReconfig();
+                        break;
+                    case XHSIInstrument.CDU_ID :
+                        ((CDUComponent)du.components).forceReconfig();
                         break;
                     case XHSIInstrument.CMD_ID :
                         ((CmdComponent)du.components).forceReconfig();
@@ -1916,6 +2122,8 @@ public class PreferencesDialog extends JDialog implements ActionListener {
                     this.preferences.set_preference( XHSIPreferences.PREF_DU_PREPEND + i + XHSIPreferences.PREF_DU_HEIGHT , this.panel_height_textfield[i].getText() );
                 if ( ! this.panel_border_textfield[i].getText().equals( this.preferences.get_preference(XHSIPreferences.PREF_DU_PREPEND + i + XHSIPreferences.PREF_DU_BORDER) ) )
                     this.preferences.set_preference( XHSIPreferences.PREF_DU_PREPEND + i + XHSIPreferences.PREF_DU_BORDER , this.panel_border_textfield[i].getText() );
+                if ( ! this.panel_fscale_textfield[i].getText().equals( this.preferences.get_preference(XHSIPreferences.PREF_DU_PREPEND + i + XHSIPreferences.PREF_DU_FSCALE) ) )
+                    this.preferences.set_preference( XHSIPreferences.PREF_DU_PREPEND + i + XHSIPreferences.PREF_DU_FSCALE , this.panel_fscale_textfield[i].getText() );
                 if ( this.panel_square_checkbox[i].isSelected() != this.preferences.get_preference(XHSIPreferences.PREF_DU_PREPEND + i + XHSIPreferences.PREF_DU_SQUARE).equals("true") )
                     this.preferences.set_preference( XHSIPreferences.PREF_DU_PREPEND + i + XHSIPreferences.PREF_DU_SQUARE, this.panel_square_checkbox[i].isSelected()?"true":"false" );
                 if ( ! orientations[this.panel_orientation_combobox[i].getSelectedIndex()].equals(this.preferences.get_preference(XHSIPreferences.PREF_DU_PREPEND + i + XHSIPreferences.PREF_DU_ORIENTATION)) )
@@ -1991,6 +2199,9 @@ public class PreferencesDialog extends JDialog implements ActionListener {
             if ( this.nd_write_ap_hdg.isSelected() != this.preferences.get_preference(XHSIPreferences.PREF_ND_WRITE_AP_HDG).equals("true") )
                 this.preferences.set_preference(XHSIPreferences.PREF_ND_WRITE_AP_HDG, this.nd_write_ap_hdg.isSelected()?"true":"false");
 
+            if ( this.nd_show_clock.isSelected() != this.preferences.get_preference(XHSIPreferences.PREF_ND_SHOW_CLOCK).equals("true") )
+                this.preferences.set_preference(XHSIPreferences.PREF_ND_SHOW_CLOCK, this.nd_show_clock.isSelected()?"true":"false");
+
 
             // PFD options
 
@@ -2015,6 +2226,17 @@ public class PreferencesDialog extends JDialog implements ActionListener {
             if ( this.adi_centered_checkbox.isSelected() != this.preferences.get_preference(XHSIPreferences.PREF_PFD_ADI_CENTERED).equals("true") )
                 this.preferences.set_preference(XHSIPreferences.PREF_PFD_ADI_CENTERED, this.adi_centered_checkbox.isSelected()?"true":"false");
 
+            if ( this.draw_twinspeeds_checkbox.isSelected() != this.preferences.get_preference(XHSIPreferences.PREF_PFD_DRAW_TWINSPEEDS).equals("true") )
+                this.preferences.set_preference(XHSIPreferences.PREF_PFD_DRAW_TWINSPEEDS, this.draw_twinspeeds_checkbox.isSelected()?"true":"false");
+
+            if ( this.draw_turnrate_checkbox.isSelected() != this.preferences.get_preference(XHSIPreferences.PREF_PFD_DRAW_TURNRATE).equals("true") )
+                this.preferences.set_preference(XHSIPreferences.PREF_PFD_DRAW_TURNRATE, this.draw_turnrate_checkbox.isSelected()?"true":"false");
+
+            if ( this.draw_gmeter_checkbox.isSelected() != this.preferences.get_preference(XHSIPreferences.PREF_PFD_DRAW_GMETER).equals("true") )
+                this.preferences.set_preference(XHSIPreferences.PREF_PFD_DRAW_GMETER, this.draw_gmeter_checkbox.isSelected()?"true":"false");
+
+            if ( ! draw_yoke_input[this.draw_yoke_input_combobox.getSelectedIndex()].equals(this.preferences.get_preference(XHSIPreferences.PREF_PFD_DRAW_YOKE_INPUT)) )
+                this.preferences.set_preference(XHSIPreferences.PREF_PFD_DRAW_YOKE_INPUT, draw_yoke_input[this.draw_yoke_input_combobox.getSelectedIndex()]);
 
             // EICAS options
 
@@ -2044,6 +2266,14 @@ public class PreferencesDialog extends JDialog implements ActionListener {
 
             if ( this.arpt_chart_nav_dest.isSelected() != this.preferences.get_preference(XHSIPreferences.PREF_ARPT_CHART_NAV_DEST).equals("true") )
                 this.preferences.set_preference(XHSIPreferences.PREF_ARPT_CHART_NAV_DEST, this.arpt_chart_nav_dest.isSelected()?"true":"false");
+
+            // CDU options
+
+            if ( this.cdu_display_only.isSelected() != this.preferences.get_preference(XHSIPreferences.PREF_CDU_DISPLAY_ONLY).equals("true") )
+                this.preferences.set_preference(XHSIPreferences.PREF_CDU_DISPLAY_ONLY, this.cdu_display_only.isSelected()?"true":"false");
+
+            if ( ! cdu_sources[this.cdu_source_combobox.getSelectedIndex()].equals(this.preferences.get_preference(XHSIPreferences.PREF_CDU_SOURCE)) )
+                this.preferences.set_preference(XHSIPreferences.PREF_CDU_SOURCE, cdu_sources[this.cdu_source_combobox.getSelectedIndex()]);
 
             cmd_panel.apply();
         }
@@ -2127,6 +2357,7 @@ public class PreferencesDialog extends JDialog implements ActionListener {
             } catch (NumberFormatException nf) {
                 field_validation_errors += "Window height contains non-numeric characters!\n";
             }
+
 
         }
 

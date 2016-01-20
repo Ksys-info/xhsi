@@ -1,20 +1,20 @@
 /**
 * CompassRose.java
-* 
+*
 * Renders the visible compass rose.
-* 
+*
 * Copyright (C) 2007  Georg Gruetter (gruetter@gmail.com)
-* 
+*
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2 
+* as published by the Free Software Foundation; either version 2
 * of the License, or (at your option) any later version.
 *
 * This library is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU Lesser General Public
 * License along with this library; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -36,7 +36,7 @@ import net.sourceforge.xhsi.model.ModelFactory;
 
 
 public class CompassRose extends NDSubcomponent {
-    
+
     private static final long serialVersionUID = 1L;
 
     private int two_digit_hdg_text_width = 0;
@@ -59,21 +59,19 @@ public class CompassRose extends NDSubcomponent {
 
         if ( nd_gc.powered ) {
 
-            // calculate text widths and heights only once
-            if (this.hdg_text_height == 0) {
-                two_digit_hdg_text_width = (int) nd_gc.get_text_width(g2, nd_gc.font_medium, "33");
-                one_digit_hdg_text_width = (int) nd_gc.get_text_width(g2, nd_gc.font_medium, "8");
-                hdg_text_height = (int) (nd_gc.get_text_height(g2, nd_gc.font_medium)*0.8f);
-            }
+            // calculate text widths and heights
+            two_digit_hdg_text_width = (int) nd_gc.get_text_width(g2, nd_gc.font_m, "33");
+            one_digit_hdg_text_width = (int) nd_gc.get_text_width(g2, nd_gc.font_m, "8");
+            hdg_text_height = (int) (nd_gc.get_text_height(g2, nd_gc.font_m)*0.8f);
 
             float left_right_angle = nd_gc.half_view_angle;
             if ( ! nd_gc.mode_plan && ! nd_gc.mode_centered && this.preferences.get_draw_only_inside_rose() && this.preferences.get_limit_arcs_at_60() ) {
                 left_right_angle = 60.0f;
             }
             if ( nd_gc.mode_centered ) left_right_angle = 180.0f;
-            
-            g2.setColor(nd_gc.markings_color);
+
             if ( ! nd_gc.mode_centered ) {
+                g2.setColor(nd_gc.dim_markings_color);
                 g2.drawArc(
                         nd_gc.map_center_x - nd_gc.rose_radius,
                         nd_gc.map_center_y - nd_gc.rose_radius,
@@ -83,6 +81,7 @@ public class CompassRose extends NDSubcomponent {
                         (int)(left_right_angle * -2.0f)
                 );
             }
+            g2.setColor(nd_gc.markings_color);
 
             if ( ! nd_gc.mode_plan ) {
 
@@ -117,16 +116,21 @@ public class CompassRose extends NDSubcomponent {
 
                 Graphics g = (Graphics) g2;
                 int tick_length = 0;
-                g2.setFont(nd_gc.font_medium);
+                g2.setFont(nd_gc.font_m); // was: medium
                 for (int angle = min_visible_heading; angle <= max_visible_heading; angle += 5) {
                     if (angle % 10 == 0) {
+                        //g2.setColor((angle % 30 == 0) ? nd_gc.markings_color : nd_gc.dim_markings_color);
+                        g2.setColor(nd_gc.dim_markings_color);
                         tick_length = nd_gc.big_tick_length;
                     } else {
+                        g2.setColor(nd_gc.dim_markings_color.darker());
                         tick_length = nd_gc.small_tick_length;
                     }
+
                     g.drawLine(nd_gc.map_center_x, nd_gc.rose_y_offset + 1,
                                nd_gc.map_center_x, nd_gc.rose_y_offset + tick_length);
 
+                    g2.setColor(nd_gc.dim_markings_color);
                     String text = "";
                     if (angle < 0) {
                         text = "" + (angle + 360)/10;
@@ -156,6 +160,8 @@ public class CompassRose extends NDSubcomponent {
                 }
                 g2.setTransform(original_at);
 
+
+                g2.setColor(nd_gc.bright_markings_color);
                 if ( nd_gc.mode_centered ) {
                     // 45 degrees marks for APP CTR, VOR CTR and MAP CTR
                     int mark_length = nd_gc.big_tick_length;
@@ -200,6 +206,8 @@ public class CompassRose extends NDSubcomponent {
                 String zoomin_ctr_ranges[] = {"0.025", "0.05", "0.10", "0.20", "0.40", "0.80", "1.60"};
                 String zoomin_exp_ranges[] = {"0.05", "0.10", "0.20", "0.40", "0.80", "1.60", "3.20"};
                 String range_text;
+                g2.setFont(nd_gc.font_xs);
+                g2.setColor(nd_gc.dim_markings_color);
                 int range_index = this.avionics.map_range_index();
                 if ( nd_gc.map_zoomin )
                     range_text = zoomin_exp_ranges[range_index];
@@ -207,8 +215,8 @@ public class CompassRose extends NDSubcomponent {
                     range_text = exp_ranges[range_index];
                 g2.drawString(
                     range_text,
-                    nd_gc.map_center_x - nd_gc.get_text_width(g2, nd_gc.font_medium, range_text) / 2,
-                    nd_gc.map_center_y - nd_gc.rose_radius + nd_gc.line_height_medium
+                    nd_gc.map_center_x - nd_gc.get_text_width(g2, nd_gc.font_xs, range_text) / 2,
+                    nd_gc.map_center_y - nd_gc.rose_radius + nd_gc.line_height_xs
                 );
                 if ( nd_gc.map_zoomin )
                     range_text = zoomin_ctr_ranges[range_index];
@@ -216,16 +224,16 @@ public class CompassRose extends NDSubcomponent {
                     range_text = ctr_ranges[range_index];
                 g2.drawString(
                     range_text,
-                    nd_gc.map_center_x - nd_gc.get_text_width(g2, nd_gc.font_medium, range_text) / 2,
-                    nd_gc.map_center_y - nd_gc.rose_radius/2 + nd_gc.line_height_medium
+                    nd_gc.map_center_x - nd_gc.get_text_width(g2, nd_gc.font_xs, range_text) / 2,
+                    nd_gc.map_center_y - nd_gc.rose_radius/2 + nd_gc.line_height_xs
                 );
 
                 g2.setColor(nd_gc.heading_labels_color);
-                g2.setFont(nd_gc.font_medium);
-                g2.drawString("N", nd_gc.map_center_x - nd_gc.max_char_advance_medium/2, nd_gc.map_center_y - nd_gc.rose_radius - 10);
-                g2.drawString("E", nd_gc.map_center_x + nd_gc.rose_radius + 10, nd_gc.map_center_y + nd_gc.line_height_medium/2);
-                g2.drawString("S", nd_gc.map_center_x - nd_gc.max_char_advance_medium/2, nd_gc.map_center_y + nd_gc.rose_radius + 10 + nd_gc.line_height_medium - 3);
-                g2.drawString("W", nd_gc.map_center_x - nd_gc.rose_radius - 10 - nd_gc.max_char_advance_medium, nd_gc.map_center_y + nd_gc.line_height_medium/2);
+                g2.setFont(nd_gc.font_s);
+                g2.drawString("N", nd_gc.map_center_x - nd_gc.max_char_advance_xs/2, nd_gc.map_center_y - nd_gc.rose_radius - 10);
+                g2.drawString("E", nd_gc.map_center_x + nd_gc.rose_radius + 10, nd_gc.map_center_y + nd_gc.line_height_s/2);
+                g2.drawString("S", nd_gc.map_center_x - nd_gc.max_char_advance_s/2, nd_gc.map_center_y + nd_gc.rose_radius + 10 + nd_gc.line_height_s - 3);
+                g2.drawString("W", nd_gc.map_center_x - nd_gc.rose_radius - 10 - nd_gc.max_char_advance_s, nd_gc.map_center_y + nd_gc.line_height_s/2);
 
             }
 

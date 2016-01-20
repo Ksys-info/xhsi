@@ -151,8 +151,8 @@ public class Commander extends CmdSubcomponent {
             }
             try {
                 Analysis a = conf.getAnalysis();
-                for (Element e : entryFastList) {
-                    e.updateElement(a);
+                for (Element elmt : entryFastList) {
+                    elmt.updateElement(a);
                 }
                 disp.updateEntries();
             } catch(Exception ex) {

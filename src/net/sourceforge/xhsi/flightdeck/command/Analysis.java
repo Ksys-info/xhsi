@@ -38,88 +38,102 @@ public class Analysis extends SuperAnalysis {
     public final static int FLAP_TOFF = 1;
     public final static int FLAP_MAX  = Integer.MAX_VALUE;
 
-    int     ap_mode   = avionics.autopilot_mode();
-    boolean ap_cmd    = ap_mode > 1;
-    int     ap_alt    = Math.round(avionics.autopilot_altitude());
-    int     ap_vvi    = Math.round(avionics.autopilot_vv());
-    int     ap_hdg    = Math.round(avionics.heading_bug());
-    int     ap_thr    = Math.round(avionics.autopilot_speed());
-    int     h_src     = avionics.hsi_source();
-    int     mp_smode  = avionics.map_submode();
-    boolean nav       = avionics.ap_vorloc_on() || avionics.ap_lnav_on();
-    boolean hsel      = avionics.ap_hdg_sel_on();
-    boolean wlv       = !nav && !hsel;
-    boolean flying    = !aircraft.on_ground();
-    float   flaps     = aircraft.get_flap_position();
-    boolean ap_vs_on  = avionics.ap_vs_on();
-    boolean ap_pit_on = avionics.ap_pitch_on();
-    boolean ap_flc_on = avionics.ap_flch_on();
-    int     flap_pos  = FLAP_ZERO;
+    int     ap_mode        = avionics.autopilot_mode();
+    boolean ap_cmd         = ap_mode > 1;
+    int     ap_alt         = Math.round(avionics.autopilot_altitude());
+    int     ap_vvi         = Math.round(avionics.autopilot_vv());
+    int     ap_hdg         = Math.round(avionics.heading_bug());
+    int     ap_thr         = Math.round(avionics.autopilot_speed());
+    int     h_src          = avionics.hsi_source();
+    int     mp_mode        = avionics.map_mode();
+    int     mp_smode       = avionics.map_submode();
+    boolean nav            = avionics.ap_vorloc_on() || avionics.ap_lnav_on();
+    boolean hsel           = avionics.ap_hdg_sel_on();
+    boolean hsel_error     = hsel && p.warn_hsel && (mp_smode == Avionics.EFIS_MAP_APP || mp_smode == Avionics.EFIS_MAP_VOR);
+    boolean wlv            = !nav && !hsel;
+    boolean flying         = !aircraft.on_ground();
+    float   flaps          = aircraft.get_flap_position();
+    boolean ap_vs_on       = avionics.ap_vs_on();
+    boolean ap_ptch_on     = avionics.ap_pitch_on();
+    boolean ap_flc_on      = avionics.ap_flch_on();
+    int     flap_pos       = FLAP_ZERO;
 
-    int     enumber   = aircraft.num_engines();
-    int     atarget   = Math.round(avionics.autopilot_altitude());
-    int     etype     = avionics.get_engine_type();
-    String  etypeStr  = "UKN";
+    int     enumber        = aircraft.num_engines();
+    int     atarget        = Math.round(avionics.autopilot_altitude());
+    int     etype          = avionics.get_engine_type();
+    String  etypeStr       = "UKN";
 
-    int     ra_bug    = p.alt_dh ? p.alt_dh_bug : aircraft.ra_bug();
-    int     dh        = ra_bug;
-    int     ra        = Math.round(aircraft.agl_m() * 3.28084f);
-    int     alt       = Math.round(aircraft.altitude_ind());
-    int     vvi       = Math.round(aircraft.vvi());
-    int     hdg       = Math.round(aircraft.heading());
-    int     ias       = Math.round(aircraft.airspeed_ind());
-    int     gs        = Math.round(aircraft.ground_speed());
-    float   aoa       = aircraft.aoa();
-    boolean gear_dn   = aircraft.has_retractable_gear() && !aircraft.gear_is_up();
-    boolean bad_climb = (gear_dn || flaps > 0) && vvi > p.vspeed * 2;
-    boolean low_fuel  = aircraft.low_fuel();
+    int     ra_bug         = p.alt_dh ? p.alt_dh_bug : aircraft.ra_bug();
+    int     dh             = ra_bug;
+    int     ra             = Math.round(aircraft.agl_m() * 3.28084f);
+    int     alt            = Math.round(aircraft.altitude_ind());
+    int     vvi            = Math.round(aircraft.vvi());
+    int     hdg            = Math.round(aircraft.heading());
+    int     ias            = Math.round(aircraft.airspeed_ind());
+    int     gs             = Math.round(aircraft.ground_speed());
+    boolean climbing       = vvi >  50;
+    boolean decending      = vvi < -50;
 
-    String  fuel      = "";
-    String  gear      = "";
-    String  flcmd     = "";
-    String  ff_Str    = "";
-    String  ff_pcStr  = "";
-    String  rnge      = "";
-    String  endu      = "";
-    String  wvec      = "";
-    String  ra_str    = "";
-    boolean ra_flash  = false;
-    Color   ra_box    = null;
-    Color   ra_color  = Color.WHITE;
-    Color   dh_color  = Color.GREEN;
-    Color   a_vs_box  = null;
-    Color   c_vs_box  = null;
-    Color   a_flc_box = null;
-    Color   a_alt_box = null;
-    Color   aoa_color = null;
+    float   aoa            = aircraft.aoa();
+    boolean low_fuel       = aircraft.low_fuel();
+    boolean retractable    = aircraft.has_retractable_gear();
+    boolean gear_not_up    = retractable && !aircraft.gear_is_up();
+    boolean gear_is_down   = !retractable || aircraft.gear_is_down();
+    boolean gear_unsafe    = aircraft.gear_unsafe();
+    boolean gear_warning   = aircraft.gear_warning() || (ra < 500 && decending && !gear_is_down);
+    boolean bad_climb      = false; // (for now)
+    boolean vvi_warn       = (p.warn_bad_vs && p.warn_no_ap && ap_cmd) && (ap_vs_on || ap_flc_on || ap_ptch_on) &&
+                             ((climbing && (alt > atarget || ap_vs_on)) || (decending && alt < atarget));
 
-    long    time_zulu     = (long)(aircraft.sim_time_zulu()     * 1000);
-    long    time_local    = (long)(aircraft.sim_time_local()    * 1000);
-    long    time_flight   = (long)(aircraft.total_flight_time() * 1000);
-    long    currentMillis = System.currentTimeMillis();
+    String  fuel           = "";
+    String  gear           = "";
+    String  flcmd          = "";
+    String  ff_Str         = "";
+    String  ff_pcStr       = "";
+    String  ff_rnge        = "";
+    String  ff_endu        = "";
+    String  wvec           = "";
+    String  ra_str         = "";
+    boolean ra_flash       = false;
+    Color   ra_box         = null;
+    Color   ra_color       = Color.WHITE;
+    Color   dh_color       = Color.GREEN;
+    Color   a_vs_box       = null;
+    Color   c_vs_box       = null;
+    Color   a_flc_box      = null;
+    Color   a_alt_box      = null;
+    Color   aoa_color      = null;
 
-    float   target_dist = 0;
+    long    time_zulu      = (long)(aircraft.sim_time_zulu()     * 1000);
+    long    time_local     = (long)(aircraft.sim_time_local()    * 1000);
+    long    time_flight    = (long)(aircraft.total_flight_time() * 1000);
+    long    currentMillis  = System.currentTimeMillis();
+
+    float   target_dist    = 0;
+    float   target_ete     = 0;
     boolean makingProgress = true;
 
-    float   n1_pwr    = 0;
-    float   epr_pwr   = 0;
-    float   trq_pwr   = 0;
-    float   map_pwr   = 0;
-    float   rpm_pwr   = 0;
-    float   ff_pwr    = 0;
-    float   ff_total  = 0;
-    int     ff_pcent  = 50;
+    float   n1_pwr         = 0;
+    float   epr_pwr        = 0;
+    float   trq_pwr        = 0;
+    float   map_pwr        = 0;
+    float   rpm_pwr        = 0;
+    float   ff_pwr         = 0;
+    float   ff_total       = 0;
+    float   ff_perMN       = 0;
+    int     ff_pcent       = 50;
 
-    String  pwr_low   = null;
-    String  pwr_high  = null;
-    int     pwr_pcent = -1;
-    String  pwr_pcStr = "?";
+    String  pwr_low        = null;
+    String  pwr_high       = null;
+    int     pwr_pcent      = -1;
+    String  pwr_pcStr      = "?";
 
-    boolean error_aoa = false;
-    boolean warn_aoa  = false;
-    boolean info_aoa  = false;
-    String  aoa_label = (aoa < 0) ? "aoa" : "AOA";
-    String  aoa_text  = "The angle of attact is "+aoa;
+    boolean warn_gs        = false;
+    boolean error_aoa      = false;
+    boolean warn_aoa       = false;
+    boolean info_aoa       = false;
+    String  aoa_label      = (aoa < 0) ? "aoa" : "AOA";
+    String  aoa_text       = "The angle of attact is "+aoa;
     String  xpdr = String.format("%04d", avionics.transponder_code());
     private boolean xplaneRunning = true;
 
@@ -152,13 +166,13 @@ public class Analysis extends SuperAnalysis {
 
         // ---------- Calculate fuel ----------
 
-        float tfuel = 0;
+        float totalFuel = 0;
         int n_tanks = aircraft.num_tanks();
         for (int i = 0 ; i < n_tanks ; i++) {
-            tfuel += aircraft.get_fuel(i);
+            totalFuel += aircraft.get_fuel(i);
         }
-        tfuel *= aircraft.fuel_multiplier();
-        fuel = "" + Math.round(tfuel);
+        totalFuel *= aircraft.fuel_multiplier();
+        fuel = "" + Math.round(totalFuel);
 
         // ---------- Calculate ff, ffp, endu, and rnge ----------
 
@@ -185,10 +199,11 @@ public class Analysis extends SuperAnalysis {
 
             ff_Str   = "" + ff_total;
             ff_pcStr = "" + ff_pcent + "%";
+            ff_perMN = ff_total / gs;
 
-            float hours = tfuel / ff_total;
-            endu = "" + hhmm(hours);
-            rnge = "" + Math.round(gs * hours);
+            float hoursToRun = totalFuel / ff_total;
+            ff_endu  = "" + hhmm(hoursToRun);
+            ff_rnge  = "" + Math.round(gs * hoursToRun);
 
         // ---------- Calculate percentage power ----------
 
@@ -226,6 +241,9 @@ public class Analysis extends SuperAnalysis {
             int d_num = Math.round(f_hnd * f_det / 100);
             flap_pos = (d_num > 1) ? ((d_num == f_det) ? FLAP_MAX : d_num) : FLAP_TOFF;
         }
+
+        bad_climb = (gear_not_up || flap_pos > Analysis.FLAP_TOFF) && (ra > 500) && (vvi > p.vspeed * 1.5);
+
 
         // ---------- Calculate wvec ----------
 
@@ -279,6 +297,9 @@ public class Analysis extends SuperAnalysis {
                 }
             }
         }
+        if (vvi_warn && a_vs_box != Color.RED) {
+            a_vs_box  = Color.YELLOW;
+        }
 
         // ---------- Calculate ra and dh ----------
 
@@ -308,10 +329,26 @@ public class Analysis extends SuperAnalysis {
             }
         }
 
+        // ---------- Calculate if a GS button needs a the yellow flashing box ----------
+
+        boolean gs_active = false;
+        float gs_value = 0.0f;
+        if (h_src == Avionics.HSI_SOURCE_GPS) {
+            gs_active = avionics.gps_gs_active();
+            gs_value  = avionics.gps_vdef_dot();
+        } else if (h_src == Avionics.HSI_SOURCE_NAV1) {
+            gs_active = avionics.nav1_gs_active();
+            gs_value  = avionics.nav1_vdef_dot();
+        } else if (h_src == Avionics.HSI_SOURCE_NAV2) {
+            gs_active = avionics.nav2_gs_active();
+            gs_value  = avionics.nav2_vdef_dot();
+        }
+        warn_gs = gs_active && Math.abs(gs_value) < 2.49f && !avionics.ap_gs_on() && !avionics.ap_gs_arm();
+
         // ---------- Calculate if progress towards target is being made ----------
 
         if (ap_cmd && !hsel && flying) {
-            float dist = getTargetDistance();
+            float dist = getTargetValue('D');
             if (dist != 0) {
                 if (dist < fs.lastDistance) {
                     fs.makingProgress = true;
@@ -320,6 +357,7 @@ public class Analysis extends SuperAnalysis {
                     fs.makingProgress = false;
                 }
                 fs.lastDistance = dist;
+                target_ete = getTargetValue('E');
             }
 
             target_dist    = dist;
@@ -371,9 +409,9 @@ public class Analysis extends SuperAnalysis {
     }
 
     /**
-     * getTargetDistance
+     * getTargetValue
      */
-    private float getTargetDistance() {
+    private float getTargetValue(char code) {
         int source;
         switch (avionics.map_submode()) {
             case Avionics.EFIS_MAP_MAP:
@@ -393,7 +431,7 @@ public class Analysis extends SuperAnalysis {
             case Avionics.HSI_SOURCE_NAV1: radio = avionics.get_nav_radio(1); break;
             case Avionics.HSI_SOURCE_NAV2: radio = avionics.get_nav_radio(2); break;
         }
-        return (radio != null) ? radio.get_distance() : 0;
+        return (radio == null) ? 0 : (code == 'D') ? radio.get_distance() : radio.get_ete();
     }
 
     /**
@@ -465,10 +503,11 @@ public class Analysis extends SuperAnalysis {
     private void displayErrors(Composer c) {
         c.write("STALL",     "The aircraft is stalling",          aircraft.stall_warning());
         c.write("TERRAIN",   "The aircraft may hit the ground ",  aircraft.terrain_warning());
-        c.write("GEAR",      "The landing gear is up",            aircraft.gear_warning() && p.warn_bgf);
-        c.write("BREAK",     "The breaks are on",                 aircraft.get_parking_brake() > 0.01f && !aircraft.gear_is_up() && p.warn_bgf);
+        c.write("GEAR",      "The landing gear is NOT down",      gear_warning && p.warn_bgf);
+        c.write("BREAK",     "The breaks are on",                 aircraft.get_parking_brake() > 0.01f && !gear_not_up && p.warn_bgf);
         c.write("AUTOPILOT", "The autopilot is disconnected",     p.warn_no_ap && ap_mode == 0);
         c.write("FLAPS",     "The flaps are not set for takeoff", flap_pos > FLAP_TOFF && !flying && p.warn_bgf);
+        c.write("BAD-CLIMB", "Climb with gear or flaps extended", bad_climb);
         c.write(aoa_label,    aoa_text,                           error_aoa && p.warn_aoa);
     }
 
@@ -492,32 +531,28 @@ public class Analysis extends SuperAnalysis {
             if (aircraft.oil_press_alert(i)) {
                 problem += "Low oil pressure ";
             }
-            c.write("ENGINE"+(i+1), problem, problem.length() > 0);
+            c.write("ENGINE"+(i+1), problem, problem.length()  > 0);
         }
 
         c.write(aoa_label, aoa_text, warn_aoa && p.warn_aoa);
 
-        if (p.warn_bad_vs && p.warn_no_ap && ap_cmd) {
-            boolean vs  = ap_vs_on;
-            boolean pit = ap_pit_on;
-            boolean flc = ap_flc_on;
-            if (vs || flc || pit) {
-                if (vvi >  20 && vs) {
-                    c.write("V/S CLIMB", "Autopilot ascent in V/S mode");
-                } else {
-                    c.write("V/S NO TARGET", "Autopilot ascent with no upper target altitude",  vvi >  20 && alt > atarget);
-                }
-                c.write("V/S NO TARGET", "Autopilot descent with no lower target altitude", vvi < -20 && alt < atarget);
+        if (vvi_warn && !bad_climb) {
+            if (ap_vs_on && vvi > 0) {
+                c.write("V/S CLIMB", "Autopilot ascent in V/S mode");
+            } else if (vvi > 0) {
+                c.write("V/S NO TARGET", "Autopilot ascent with no upper target altitude");
+            } else {
+                c.write("V/S NO TARGET", "Autopilot descent with no lower target altitude");
             }
         }
 
         c.write("AUTOPILOT", "The autopilot is disconnected",        p.warn_no_ap && ap_mode == 1);
-        c.write("BAD-CLIMB", "Climb with gear or flaps extended",    bad_climb);
         c.write("FLAPS",     "The flaps are fully extended",         flap_pos == FLAP_MAX && flying && p.warn_bgf);
-        c.write("GEAR",      "The landing gear is unsafe",           aircraft.gear_unsafe() && p.warn_bgf);
-        c.write("WLV",       "Autopilot in wing level mode",         p.warn_hsel  && wlv);
-        c.write("HDG",       "Autopilot in heading mode",            p.warn_hsel  && hsel);
+        c.write("GEAR",      "The landing gear is unsafe",           gear_unsafe && !gear_warning && p.warn_bgf);
+        c.write("WLV",       "Autopilot in wing level mode",         p.warn_hsel && wlv);
+        c.write("HDG",       "Autopilot in heading mode",            hsel_error);
         c.write("DIRECTION", "The distance to target is increasing", p.warn_dist && !makingProgress);
+        c.write("GS-OFF",    "Glide slope is not selected",          warn_gs);
     }
 
     // ------------------------------------------- Info -------------------------------------------
@@ -529,7 +564,7 @@ public class Analysis extends SuperAnalysis {
         c.write(aoa_label,     aoa_text,                   info_aoa && p.warn_aoa);
         c.write("CLIMBING",   "VVI is "+vvi ,              p.warn_vs && vvi >  p.vspeed);
         c.write("DESCENDING", "VVI is "+vvi ,              p.warn_vs && vvi < -p.vspeed);
-        c.write("GEAR",       "The landing gear is down",  gear_dn && !aircraft.gear_unsafe() && !aircraft.gear_warning() && p.warn_bgf);
+        c.write("GEAR",       "The landing gear is down",  gear_not_up && !gear_unsafe && !gear_warning && p.warn_bgf);
         c.write("FLAPS",      "The flaps are deployed",    flap_pos > FLAP_ZERO && flap_pos < FLAP_MAX && p.warn_bgf);
         c.write("power",       pwr_low,                    pwr_low  != null);
         c.write("POWER",       pwr_high,                   pwr_high != null);
@@ -594,7 +629,7 @@ class SuperAnalysis {
 
     SuperAnalysis(FlightState fs, CommanderProperties p, Aircraft aircraft, Avionics avionics) {
         this.fs = fs;
-        this.p = p;
+        this.p  = p;
         this.aircraft = aircraft;
         this.avionics = avionics;
     }

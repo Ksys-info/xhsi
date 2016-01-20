@@ -52,7 +52,6 @@ import net.sourceforge.xhsi.model.ModelFactory;
 
 public class CmdComponent extends JPanel implements Observer, PreferencesObserver, ActionListener {
 
-
     private static final long serialVersionUID = 1L;
     public static boolean COLLECT_PROFILING_INFORMATION = false;
     public static long NB_OF_PAINTS_BETWEEN_PROFILING_INFO_OUTPUT = 100;
@@ -105,13 +104,17 @@ public class CmdComponent extends JPanel implements Observer, PreferencesObserve
      */
     public void actionPerformed(ActionEvent e) {
       //prt("*AP* " + (System.currentTimeMillis() - lastData) + " w="+winNumber+" vis="+frame.isVisible());
+        long now = System.currentTimeMillis();
         if (frame.isVisible()) {
             Analysis a = conf.getAnalysis();
-            if ((System.currentTimeMillis() - lastData) > 1000 /*&& a != null*/) {
+            if ((now - lastData) > 1000 /*&& a != null*/) {
                 a.invalidate();
             }
         }
         repaint();
+        if (isWinZero && (now / 250) % 20 == 0) { // Every 5 seconds
+            conf.saveAllWindowPositions();
+        }
     }
 
     /**

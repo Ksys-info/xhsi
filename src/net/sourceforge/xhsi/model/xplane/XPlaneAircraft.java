@@ -31,6 +31,7 @@ import net.sourceforge.xhsi.model.CoordinateSystem;
 import net.sourceforge.xhsi.model.ModelFactory;
 import net.sourceforge.xhsi.model.NavigationObject;
 import net.sourceforge.xhsi.model.SimDataRepository;
+import net.sourceforge.xhsi.model.Aircraft.ElecBus;
 
 
 public class XPlaneAircraft implements Aircraft {
@@ -65,6 +66,12 @@ public class XPlaneAircraft implements Aircraft {
         return this.environment;
     }
 
+    public int plugin_version() { return Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.PLUGIN_VERSION_ID)); }
+    
+    public String aircraft_registration() {
+        return sim_data.get_sim_string(XPlaneSimDataRepository.SIM_AIRCRAFT_VIEW_ACF_TAILNUM_0_3) + sim_data.get_sim_string(XPlaneSimDataRepository.SIM_AIRCRAFT_VIEW_ACF_TAILNUM_4_7);
+    }
+    
     public boolean battery() {
         if ( XHSIPreferences.get_instance().get_instrument_operator().equals( XHSIPreferences.INSTRUCTOR ) ||
                 ! XHSIPreferences.get_instance().get_use_power() ) {
@@ -93,8 +100,12 @@ public class XPlaneAircraft implements Aircraft {
 //    public float indicated_vv() { return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_POSITION_VH_IND_FPM); }
     public float pitch() { return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_POSITION_THETA); }
     public float bank() { return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_POSITION_PHI); }
+    public float g_load() { return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_FORCES_G_LOAD); }
     public float yoke_pitch() { return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_CONTROLS_YOKE_PITCH_RATIO); }
     public float yoke_roll() { return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_CONTROLS_YOKE_ROLL_RATIO); }
+    public float rudder_hdg() { return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_CONTROLS_YOKE_HDG_RATIO); }
+    public float brk_pedal_left() { return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_CONTROLS_LEFT_BRK_RATIO); }
+    public float brk_pedal_right() { return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_CONTROLS_RIGHT_BRK_RATIO); }
 
 
     public float track() {
@@ -188,7 +199,11 @@ public class XPlaneAircraft implements Aircraft {
     public int qnh() {
         return Math.round( altimeter_in_hg() * 1013.0f / 29.92f );
     }
-
+    
+    public int qnh(boolean pilot) {
+        return Math.round( altimeter_in_hg(pilot) * 1013.0f / 29.92f );
+    }
+    
     public float altimeter_in_hg() {
         if ( xhsi_preferences.get_instrument_operator().equals( XHSIPreferences.COPILOT ) ) {
             // copilot
@@ -198,10 +213,22 @@ public class XPlaneAircraft implements Aircraft {
             return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_GAUGES_ACTUATORS_BAROMETER_SETTING_IN_HG_PILOT);
         }
     }
-
+    
+    public float altimeter_in_hg(boolean pilot) {
+        if ( ! pilot ) {
+            // copilot
+            return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_GAUGES_ACTUATORS_BAROMETER_SETTING_IN_HG_COPILOT);
+        } else {
+            // pilot or instructor
+            return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_GAUGES_ACTUATORS_BAROMETER_SETTING_IN_HG_PILOT);
+        }
+    }
+    
     public float airspeed_acceleration() {
         return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_GAUGES_INDICATORS_AIRSPEED_ACCELERATION);
     }
+
+    public float turn_rate() { return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_MISC_TURNRATE_NOROLL); }
 
     public float turn_speed() { return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_POSITION_R); } // degrees per second
 
@@ -266,6 +293,10 @@ public class XPlaneAircraft implements Aircraft {
     public float tat() {
         return ( (oat() + 273.15f ) * ( 1 + ( (1.4f-1.0f)/2.0f*1.0f*mach()*mach()) ) ) - 273.15f;
     }
+    
+    public float isa() {
+        return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_WEATHER_TEMPERATURE_SEALEVEL_C);
+    } 
 
     public float mach() {
         return true_air_speed() / sound_speed();
@@ -289,6 +320,12 @@ public class XPlaneAircraft implements Aircraft {
         }
     }
 
+    public int num_gear_doors() { return (int)sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_AIRCRAFT_GEAR_DOOR_COUNT); }
+    
+    public float get_gear_door(int gear) {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_AIRCRAFT_GEAR_DOOR_DEPLOY_RATIO_ + gear);
+    }
+    
     public boolean gear_is_down() {
         boolean all_down = true;
         int n = num_gears();
@@ -338,7 +375,51 @@ public class XPlaneAircraft implements Aircraft {
     public float get_yaw_trim() {
         return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_CONTROLS_RUDDER_TRIM);
     }
+    
+    public float get_left_elev_pos() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_CONTROLS_LEFT_ELEV);
+    }
+    
+    public float get_right_elev_pos() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_CONTROLS_RIGHT_ELEV);
+    }
+    
+    public float get_left_aileron_pos() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_CONTROLS_LEFT_AIL);
+    }
+    
+    public float get_right_aileron_pos() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_CONTROLS_RIGHT_AIL);
+    }
+    
+    public float get_rudder_pos() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_CONTROLS_RUDDER);
+    }
 
+    public float get_aileron_max_up() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_CONTROLS_ACL_AIL_UP);
+    }
+
+    public float get_aileron_max_down() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_CONTROLS_ACL_AIL_DN);
+    }
+
+    public float get_elev_max_up() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_CONTROLS_ACL_ELEV_UP);
+    }
+
+    public float get_elev_max_down() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_CONTROLS_ACL_ELEV_DN);
+    }
+
+    public float get_rudder_max_lr() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_CONTROLS_ACL_RUDDER_LR);
+    }
+       
+    public float get_slat_position() {
+        return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_CONTROLS_SLATRAT);
+    }
+    
     public float get_flap_position() {
         // sim data for handle and real position are reversed
         return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_CONTROLS_FLAP_HANDLE_DEPLOY_RATIO);
@@ -365,8 +446,89 @@ public class XPlaneAircraft implements Aircraft {
         return ( sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_PARTS_ACF_SBRKEQ) != 0.0f );
     }
 
+    public int num_spoilers() {
+    	return has_speed_brake() ? 1 : 0;
+    }
+    
+    public float get_spoiler_pos(int pos) {
+    	return get_speed_brake();
+    }
+  
+    public SpoilerStatus get_spoiler_status_left(int pos) {
+    	int spoiler = 0;
+    	if ((this.avionics.is_qpac())) {
+    		spoiler = (Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_SPOILERS_LEFT)) >> (pos*2)) & 0x03 ;
+    		switch (spoiler) {
+    		case 0: return SpoilerStatus.RETRACTED;
+    		case 1: return SpoilerStatus.EXTENDED;
+    		case 2: return SpoilerStatus.FAILED;
+    		default: return SpoilerStatus.JAMMED;
+    		}
+
+    	} else {
+    	return get_speed_brake() > 0.1f ? SpoilerStatus.EXTENDED : SpoilerStatus.RETRACTED ;
+    	}
+    }
+
+    public SpoilerStatus get_spoiler_status_right(int pos) {
+    	int spoiler = 0;
+    	if ((this.avionics.is_qpac())) {
+    		spoiler = (Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_SPOILERS_RIGHT)) >> (pos*2)) & 0x03 ;
+    		switch (spoiler) {
+    		case 0: return SpoilerStatus.RETRACTED;
+    		case 1: return SpoilerStatus.EXTENDED;
+    		case 2: return SpoilerStatus.FAILED;
+    		default: return SpoilerStatus.JAMMED;
+    		}
+
+    	} else {
+    	return get_speed_brake() > 0.1f ? SpoilerStatus.EXTENDED : SpoilerStatus.RETRACTED ;
+    	}
+    }
+       
     public float get_parking_brake() {
         return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_CONTROLS_PARKING_BRAKE_RATIO);
+    }
+    
+    public int seat_belt_sign () {
+    	// bits 7 and 8 
+    	int lights_signs = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_LIGHTS));
+    	return (lights_signs >> 8) & 0x03;
+    }
+    
+    public int no_smoking_sign () {
+    	// bits 5 and 6
+    	int lights_signs = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_LIGHTS));
+    	return (lights_signs >> 6) & 0x03;    	
+    }
+    
+    public boolean landing_lights_on () {
+    	// bit 1
+    	int lights_signs = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_LIGHTS));
+    	return (lights_signs & 0x02) > 0 ? true : false;    	
+    }
+    
+    public boolean landing_taxi_lights_on () {
+    	// bit 4
+    	int lights_signs = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_LIGHTS));
+    	return (lights_signs & 0x10) > 0 ? true : false;    	
+    }
+    
+    public boolean beacon_on () {
+    	// bit 0
+    	int lights_signs = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_LIGHTS));
+    	return (lights_signs & 0x01) > 0 ? true : false;   	
+    }
+    
+    public boolean nav_lights_on () {
+    	// bit 2
+    	int lights_signs = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_LIGHTS));
+    	return (lights_signs & 0x04) > 0 ? true : false;    	
+    }
+    public boolean strobe_lights_on () {
+    	// bit 3
+    	int lights_signs = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_LIGHTS));
+    	return (lights_signs & 0x08) > 0 ? true : false;   	
     }
 
     public boolean stall_warning() {
@@ -439,6 +601,14 @@ public class XPlaneAircraft implements Aircraft {
         return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_OVERFLOW_ACF_VLE);
     }
 
+    public float get_Vmca() {
+        return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_OVERFLOW_ACF_VMCA);
+    }
+
+    public float get_Vyse() {
+        return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_OVERFLOW_ACF_VYSE);
+    }
+
     public int num_engines() {
         //return (int)sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_ENGINE_ACF_NUM_ENGINES);
         int xp_engines = (int)sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_ENGINE_ACF_NUM_ENGINES);
@@ -461,6 +631,10 @@ public class XPlaneAircraft implements Aircraft {
     public boolean oil_temp_alert(int eng) {return ( ( (int)sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_ANNUNCIATORS_OIL_TEMPERATURE) & (1<<eng) ) != 0 );}
     public boolean fuel_press_alert(int eng) {return ( ( (int)sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_ANNUNCIATORS_FUEL_PRESSURE) & (1<<eng) ) != 0 );}
 
+    public float fuel_used(int eng) {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_FUEL_USED_ + eng);
+    }
+    
     public float get_fuel(int tank) {
         return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_FUEL_QUANTITY_ + tank);
     }
@@ -495,6 +669,39 @@ public class XPlaneAircraft implements Aircraft {
 //        this.fuel_capacity = capacity;
 //    }
 
+    public PumpStatus get_tank_pump(int tank) {
+    	if (avionics.is_qpac()) {
+    		int pump_status = ((int)sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_FUEL_PUMPS) >> (tank*2)) & 0x03 ;
+    		switch (pump_status) {
+    			case 0: return PumpStatus.OFF;
+    			case 1: return PumpStatus.ON;
+    			case 3: return PumpStatus.LOW_PRESSURE;
+    			default :return PumpStatus.FAILED;
+    		}    		
+    	} else {
+    		return ( ( (int)sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_FUEL_PUMPS) & (1<<tank) ) != 0 ? PumpStatus.ON : PumpStatus.OFF );
+    	}
+    }
+
+    public ValveStatus get_tank_xfer_valve() {
+    	if (avionics.is_qpac()) {
+    		int pump_status = ((int)sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_FUEL_VALVES) >> 8) & 0x07 ;
+    		switch (pump_status) {
+    			case 1: return ValveStatus.VALVE_CLOSED;
+    			case 2: return ValveStatus.VALVE_OPEN;
+    			case 3: return ValveStatus.VALVE_CLOSED_FAILED;
+    			case 4: return ValveStatus.VALVE_OPEN_FAILED;
+    			default :return ValveStatus.JAMMED;
+    		}    		
+    	} else {
+    		return ValveStatus.VALVE_CLOSED;
+    	}
+    }
+    
+    public float gross_weight() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_WEIGHT_M_TOTAL);
+    }
+
     public float fuel_multiplier() {
         
         if ( this.avionics.get_fuel_units() == XHSISettings.FUEL_UNITS_LBS ) return 2.20462262185f;
@@ -528,7 +735,10 @@ public class XPlaneAircraft implements Aircraft {
             } else {
                 ref = 0.0f;
             }
-        } else if ( this.avionics.has_ufmc() ) {
+        } else if ( this.avionics.is_qpac() ) {                
+            ref = sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_THR_RATING_N1);            
+            }
+        else if ( this.avionics.has_ufmc() ) {
             if ( engine == 0 ) {
                 ref = sim_data.get_sim_float(XPlaneSimDataRepository.UFMC_N1_1);
             } else if ( engine == 1 ) {
@@ -546,12 +756,21 @@ public class XPlaneAircraft implements Aircraft {
         return ref;
     }
 
-    public String get_thrust_mode() {
-
+    public String get_thrust_mode() {    	
         if ( this.avionics.is_x737() ) {
             return XPlaneAircraft.x737_thrust_modes[ (int) sim_data.get_sim_float(XPlaneSimDataRepository.X737_N1_PHASE) ];
         } else if ( ( this.avionics.is_cl30() ) && ( this.reverser_position(0) == 0.0f ) ) {
             return XPlaneAircraft.cl30_thrust_modes[ (int) sim_data.get_sim_float(XPlaneSimDataRepository.CL30_CARETS) ];
+        } else if ( this.avionics.is_qpac() ) {
+        	int qpac_thr_rtype = (int) sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_THR_RATING_TYPE);
+        	switch (qpac_thr_rtype) {
+        	case 0 : return "";
+        	case 1 : return "CL";
+        	case 2 : return "MCT";
+        	case 3 : return "TOGA";
+        	case 4 : return "FLX";
+        	default : return "-";
+        	}    	
         } else {
             return "";
         }
@@ -564,6 +783,10 @@ public class XPlaneAircraft implements Aircraft {
 
     public float get_EGT_value(int engine) {
         return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_ENGINE_ENGN_EGT_C_ + engine);
+    }
+    
+    public float get_EGT_max() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_ENGINE_MAX_EGT);
     }
 
     public float get_N2(int engine) {
@@ -592,6 +815,14 @@ public class XPlaneAircraft implements Aircraft {
             return o_p;
     }
 
+    public float get_oil_press_psi(int engine) {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_ENGINE_ENGN_OIL_PRESS_PSI_ + engine);
+    }
+    
+    public float get_oil_press_max() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_ENGINE_RED_OIL_P);
+    }
+    
     public float get_oil_temp_ratio(int engine) {
         float o_t = sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_ENGINE_ENGN_OIL_TEMP_ + engine);
         if ( o_t > 1.0f )
@@ -600,6 +831,14 @@ public class XPlaneAircraft implements Aircraft {
             return o_t;
     }
 
+    public float get_oil_temp_max() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_ENGINE_RED_OIL_T);
+    }
+    
+    public float get_oil_temp_c(int engine) {
+        return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_ENGINE_ENGN_OIL_TEMP_C_ + engine);
+    }
+    
     public float get_oil_quant_ratio(int engine) {
         return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_ENGINE_INDICATORS_OIL_QUANTITY_RATIO_ + engine);
     }
@@ -610,15 +849,32 @@ public class XPlaneAircraft implements Aircraft {
 
     public float get_hyd_press(int circuit) {
         float h_p;
-        if ( circuit == 1 )
-            h_p = sim_data.get_sim_float(XPlaneSimDataRepository.SIM_OPERATION_FAILURES_HYDRAULIC_PRESSURE_RATIO1);
-        else
-            h_p = sim_data.get_sim_float(XPlaneSimDataRepository.SIM_OPERATION_FAILURES_HYDRAULIC_PRESSURE_RATIO2);
-        // most values seem to be in the range 3000-3600
-        if ( h_p > 5000.0f )
-            return 3333.0f / 5000.0f;
-        else
-            return h_p / 5000.0f;
+        // TODO: QPAC hyd pressure
+        // A320-A340-A380 standard pressure is 3000 psi (3 circuits : Blue, Green, Yellow)
+        // A350 two high pressure circuits at 5000 psi
+        // B737 two main circuits : A and B, and one Standby
+        if ( this.avionics.is_qpac() ) {
+        	switch (circuit) {
+        		case 0 : h_p = sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_HYD_G_PRESS);
+        				 break;
+        		case 1 : h_p = sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_HYD_Y_PRESS);
+				 		 break;
+        		case 2 : h_p = sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_HYD_B_PRESS);
+				 		 break;
+				default : h_p = 0.0f;
+        	}
+        	return h_p / 5000.0f;
+        } else {
+        	if ( circuit == 1 )
+        		h_p = sim_data.get_sim_float(XPlaneSimDataRepository.SIM_OPERATION_FAILURES_HYDRAULIC_PRESSURE_RATIO1);
+        	else
+        		h_p = sim_data.get_sim_float(XPlaneSimDataRepository.SIM_OPERATION_FAILURES_HYDRAULIC_PRESSURE_RATIO2);
+        	// most values seem to be in the range 3000-3600
+        	if ( h_p > 5000.0f )
+        		return 3333.0f / 5000.0f;
+        	else
+        		return h_p / 5000.0f;
+        }
     }
 
     public float get_hyd_quant(int circuit) {
@@ -626,6 +882,44 @@ public class XPlaneAircraft implements Aircraft {
             return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_HYDRAULICS_INDICATORS_HYDRAULIC_FLUID_RATIO_1);
         else
             return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_HYDRAULICS_INDICATORS_HYDRAULIC_FLUID_RATIO_2);
+    }
+    
+    public HydPumpStatus get_hyd_pump(int circuit) {
+    	if (this.avionics.is_qpac()) {
+    		int qpac_hyd_pumps = (int) sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_HYD_PUMPS);
+    		int pump_status = (qpac_hyd_pumps >> (6+circuit*2)) & 0x03;
+    		if (circuit==3) {
+    			// Yellow ELEC pump
+    			pump_status = (qpac_hyd_pumps >> 2) & 0x03;    			
+    		} else if (circuit==4) {
+    			// RAT pump
+    			pump_status = qpac_hyd_pumps & 0x03;    	    			
+    		}
+    		switch (pump_status) {
+				case 0 : return HydPumpStatus.OFF;
+				case 1 : return HydPumpStatus.ON;
+				case 2 : return HydPumpStatus.FAILED;
+				default : return HydPumpStatus.OFF; 
+    		}
+    	} else {
+    		return HydPumpStatus.ON;
+    	}
+    }
+    
+    public HydPTUStatus get_hyd_ptu() {
+    	if (this.avionics.is_qpac()) {
+    		int qpac_hyd_pumps = (int) sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_HYD_PUMPS);
+    		int ptu_status = (qpac_hyd_pumps >> 4) & 0x03; 
+    		switch (ptu_status) {
+    			case 0 : return HydPTUStatus.OFF;
+    			case 1 : return HydPTUStatus.STANDBY;
+    			case 2 : return HydPTUStatus.LEFT;
+    			case 3 : return HydPTUStatus.RIGHT;
+    		}
+    		return HydPTUStatus.OFF;
+    	} else {
+    		return HydPTUStatus.STANDBY;
+    	}
     }
 
     public float get_TRQ_LbFt(int engine) {
@@ -697,8 +991,19 @@ public class XPlaneAircraft implements Aircraft {
     public float get_EPR(int engine) {
         return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_FLIGHTMODEL_ENGINE_ENGN_EPR_ + engine);
     }
+    
+    public float get_EPR_max() {
+        return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_ENGINE_RED_EPR);
+    }
+    
+    public float get_throttle(int engine) {
+        return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_ENGINE_ACTUATORS_THROTTLE_RATIO_ + engine);
+    }
 
-
+    public boolean fire_extinguisher(int engine) {
+    	return ( ( (int)sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_ENGINE_FIRE_EXTINGUISHER) & (1<<engine) ) != 0 );
+    }
+    
     public float get_min_rwy_length() {
         float dataref_rwy_len = sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_RWY_LENGTH_MIN);
         if ( dataref_rwy_len > 0.0f ) {
@@ -739,4 +1044,228 @@ public class XPlaneAircraft implements Aircraft {
     }
 
 
+    // Auxiliary Power Unit (APU)
+    public boolean has_apu(){
+    	return true;
+    }
+    
+    public float apu_n1() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.APU_N1);
+    }
+    
+    public float apu_gen_amp() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.APU_GEN_AMP);
+    }
+
+    public float apu_egt() {
+    	// APU EGT is simulated as a segmented curve is start mode. Peak EGT depends on TAT.
+    	// In shutdown mode, it's a linear function of N1
+    	float n1 = apu_n1();
+    	float base_egt = oat()+5;
+    	float peak_egt = 600 + (float) Math.max(oat(), (oat()-isa())*5.5 );
+    	float stab_egt = 340 + (float) Math.max(oat(), (oat()-isa())*2.5 );
+    	float egt = oat()+5;
+    	if (apu_starter()>1) {
+    		if (n1 < 15) { 
+    			egt = base_egt;
+    		} else if (n1 < 30) {
+    			// base to peak (n1 between 15 and 30)
+    			egt = base_egt + (peak_egt-base_egt) *((n1-15)/15); 
+    		} else if (n1 < 99) {
+    			// peak to stab (n1 between 30 and 99 - EGT decreasing)
+    			egt = stab_egt + (peak_egt-stab_egt) * ((99-n1)/69);
+    		} else {
+    			egt = stab_egt;
+    		}
+    	} else if (apu_running()) {
+    		egt = stab_egt;
+    	} else if (n1 > 1.0) {
+    		// shutdown sequence
+    		egt = Math.max (n1/100 * stab_egt, base_egt);
+    	}
+    	return egt;
+    }
+  
+    public float apu_egt_limit() {
+    	// EGT limit is 1050°c during startup sequence
+    	// At the end of the startup, smoothly goes to 705°
+    	// stay at 705° during shutdown sequence
+    	// at the end of the shutdown sequence, back to 1050°
+    	float egt_limit=1050.0f;
+    	float n1 = apu_n1();
+    	if (apu_running()) {
+    		if (n1 > 60) {
+    			egt_limit = 1050 - (1050-705)*(n1-60)/40;
+    		} 
+    	} else if (n1 > 1) {
+    		egt_limit=705;
+    	}
+    	return egt_limit;
+    }
+    
+    public boolean apu_running() {
+    	int apu_status = (int) sim_data.get_sim_float(XPlaneSimDataRepository.APU_STATUS);
+    	return (( apu_status & 0x10) > 0);
+    }
+
+    public boolean apu_gen_on() {
+    	int apu_status = (int) sim_data.get_sim_float(XPlaneSimDataRepository.APU_STATUS);
+    	return (( apu_status & 0x04) > 0);
+   	
+    }
+    
+    public int apu_starter() {
+    	int apu_status = (int) sim_data.get_sim_float(XPlaneSimDataRepository.APU_STATUS);
+    	return ( apu_status & 0x03);
+    }
+
+    public boolean ram_air_gen_on() {
+    	int apu_status = (int) sim_data.get_sim_float(XPlaneSimDataRepository.APU_STATUS);
+    	return (( apu_status & 0x20) > 0);   	
+    }
+
+    public boolean gpu_gen_on() {
+    	int apu_status = (int) sim_data.get_sim_float(XPlaneSimDataRepository.APU_STATUS);
+    	return (( apu_status & 0x40) > 0);
+   	
+    }
+
+    public float gpu_gen_amps() {
+    	// float sim_data.get_sim_float(XPlaneSimDataRepository.GPU_AMPS);
+    	return 0.0f;
+   	}
+
+    public int num_batteries() {
+    	return (int) sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_ELECTRICAL_NUM_BATTERIES);
+    }
+
+    public int num_buses() {
+    	return (int) sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_ELECTRICAL_NUM_BUSES);
+    }
+
+    public int num_generators() {
+    	return (int) sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_ELECTRICAL_NUM_GENERATORS);
+    }
+
+    public int num_inverters() {
+    	return (int) sim_data.get_sim_float(XPlaneSimDataRepository.SIM_AIRCRAFT_ELECTRICAL_NUM_INVERTERS);
+    }
+    
+    public boolean ac_bus_tie() {
+    	if (this.avionics.is_qpac()) {
+        	// Complex aircrafts, Bus Tie depends on GPU, APU and ENG GEN, may be automatic or manual
+    		int qpac_ac_cross = (int) sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_ELEC_AC_CROSS);
+    		switch (qpac_ac_cross) {
+    			case 3 :
+    			case 6 :
+    			case 7 : return true;
+    			default : return false;
+    		}
+    	} else {
+        	// Common aircraft, no bus tie
+        	return false;
+    	}    		
+    }
+    
+    public ElecBus apu_on_bus() {
+    	if (this.avionics.is_qpac()) {
+        	// Complex aircrafts, APU may be connected to bus 1, bus 2 or both buses
+    		int qpac_ac_cross = (int) sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_ELEC_AC_CROSS);
+    		switch (qpac_ac_cross) {
+    			case 1 : return ElecBus.BUS_1;
+    			case 2 : return ElecBus.BUS_2;
+    			case 3 : return ElecBus.BOTH;
+    			default : return ElecBus.NONE;
+    		}
+    	} else {
+        	// Common aircraft, APU GEN ON = APU on BUS 1
+        	return apu_gen_on() ? ElecBus.BUS_1 : ElecBus.NONE;
+    	}    		
+    }
+    
+    public ElecBus gpu_on_bus() {
+    	if (this.avionics.is_qpac()) {
+        	// Complex aircrafts, GPU may be connected to bus 1, bus 2 or both buses
+    		int qpac_ac_cross = (int) sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_ELEC_AC_CROSS);
+    		switch (qpac_ac_cross) {
+    			case 4 : return ElecBus.BUS_1;
+    			case 5 : return ElecBus.BUS_2;
+    			case 6 : return ElecBus.BOTH;
+    			default : return ElecBus.NONE;
+    		}
+    	} else {
+        	// Common aircraft, APU GEN ON = APU on BUS 1
+        	return gpu_gen_on() ? ElecBus.BUS_1 : ElecBus.NONE;
+    	}    		
+    }
+
+    public ElecBus ac_ess_on_bus() {
+    	int qpac_elec_connectors;
+    	if (this.avionics.is_qpac()) {
+    		qpac_elec_connectors = ((int) sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_ELEC_CX_CENTER)) & 0x03;
+    		switch (qpac_elec_connectors) {
+    		case 0 : return ElecBus.NONE;
+    		case 1 : return ElecBus.BUS_1;
+    		case 2 : return ElecBus.BUS_2;
+    		default: return ElecBus.BOTH;
+    		}    		
+    	} else {
+    		// on AC 1 by default
+    		return ElecBus.BUS_1;
+    	}
+    }
+    
+    public boolean eng_gen_on_bus(int eng) {
+    	int qpac_elec_connectors;
+    	if (this.avionics.is_qpac()) {
+    		if (eng==0) {  
+    			qpac_elec_connectors = (int) sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_ELEC_CX_LEFT);
+    		} else { 
+    			qpac_elec_connectors = (int) sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_ELEC_CX_RIGHT);
+    		}
+    		return ((qpac_elec_connectors & 0x01) != 0);
+    	} else {
+    		return true;
+    	}
+    }
+    
+    // Bleed Air
+    public boolean has_bleed_air() {
+    	return true;
+    }
+    
+    public int bleed_air_mode() {
+    	return 0;
+    }
+    
+    public ValveStatus bleed_valve(int circuit) {
+    	if (this.avionics.is_qpac()) {
+    		int qpac_bleed = (int) sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_BLEED_VALVES);
+    		int valve = (qpac_bleed >> (circuit * 2)) & 0x03;
+    		switch (valve) {
+    		case 0 : return ValveStatus.VALVE_CLOSED;
+    		case 1 : return ValveStatus.VALVE_OPEN;
+    		case 2 : return ValveStatus.VALVE_CLOSED_FAILED;
+    		default : return ValveStatus.VALVE_OPEN_FAILED;
+    		}
+    	} else {
+    		return ValveStatus.VALVE_OPEN;
+    	}
+    }
+
+    // Cabin pressurization
+    public float cabin_altitude() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_PRESSURIZATION_CABIN_ALT);
+    }
+    
+    public float cabin_delta_p() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_PRESSURIZATION_CABIN_DELTA_P);
+    }
+    
+    public float cabin_vs() {
+    	return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_PRESSURIZATION_CABIN_VVI);
+    }
+
+
+    
 }

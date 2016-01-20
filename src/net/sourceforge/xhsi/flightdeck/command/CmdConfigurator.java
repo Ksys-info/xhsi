@@ -26,12 +26,15 @@ import java.awt.Container;
 import java.awt.BorderLayout;
 import java.awt.Graphics2D;
 import java.awt.Dimension;
+import java.awt.GraphicsEnvironment;
+import java.awt.GraphicsDevice;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Date;
 import java.util.Properties;
+import java.util.Vector;
 import java.util.ArrayList;
 import java.util.Scanner;
 import java.util.HashMap;
@@ -64,9 +67,15 @@ import net.sourceforge.xhsi.flightdeck.mfd.DestinationAirport;
 public class CmdConfigurator {
 
     /**
+     * RECORD_WINDOW_POSITIONS
+     */
+    private final static boolean RECORD_WINDOW_POSITIONS = System.getProperty("cmd.record.windows") != null;
+
+    /**
      * MAX_WINS
      */
     public final static int MAX_WINS = 8;
+
 
     /**
      * conf
@@ -124,7 +133,7 @@ public class CmdConfigurator {
     int version;
 
     /**
-     * nalysis
+     * analysis
      */
     private Analysis analysis;
 
@@ -149,6 +158,11 @@ public class CmdConfigurator {
     private Color labelColor = new Color(0x00D0D0);
 
     /**
+     * The last Properties object written out with the window sizes etc.
+     */
+    private Properties lastProperties;
+
+    /**
      * The constructor
      */
     public CmdConfigurator(XHSI xhsi) {
@@ -159,7 +173,72 @@ public class CmdConfigurator {
         conf = this;
         reload();
         setMissingSizes();
+        loadAlternateWindowPositions();
+    }
 
+    /**
+     * getWindowPositionsPropname
+     */
+    private static String getWindowPositionsPropname() {
+        GraphicsDevice gd = GraphicsEnvironment.getLocalGraphicsEnvironment().getDefaultScreenDevice();
+        int swidth  = gd.getDisplayMode().getWidth();
+        int sheight = gd.getDisplayMode().getHeight();
+        return "XHSI."+swidth+"x"+sheight+".du";
+    }
+
+    /**
+     * saveAllWindowPositions
+     */
+    public void saveAllWindowPositions() {
+        if (RECORD_WINDOW_POSITIONS) {
+            XHSIPreferences xp = XHSIPreferences.get_instance();
+            Properties p = new Properties();
+            for (XHSIInstrument du : xhsi.getInstruments()) {
+                int i = du.get_index();
+                String pref = "du."+i+".";
+                p.setProperty(pref+"pos_x",  "" + du.frame.getX());
+                p.setProperty(pref+"pos_y",  "" + du.frame.getY());
+                p.setProperty(pref+"height", "" + du.frame.getHeight());
+                p.setProperty(pref+"width",  "" + du.frame.getWidth());
+                p.setProperty(pref+"fscale", "" + xp.get_panel_fscale(i));
+            }
+
+            if (!p.equals(lastProperties)) {
+                try {
+                    String fname = getWindowPositionsPropname();
+                    FileOutputStream os = new FileOutputStream(fname);
+                    p.store(os, "CmdConfigurator");
+                    os.close();
+                    System.out.println("Saved "+ fname + " at " + new Date());
+                    lastProperties = p;
+                } catch (Exception ex) {
+                    System.out.println("Exception loading properties file: " + ex);
+                }
+            }
+        }
+    }
+
+    /**
+     * loadAlternateWindowPositions
+     */
+    private void loadAlternateWindowPositions() {
+        if (RECORD_WINDOW_POSITIONS) {
+            Properties p = new Properties();
+            try {
+                String fname = getWindowPositionsPropname();
+                FileInputStream is = new FileInputStream(fname);
+                p.load(is);
+                is.close();
+                System.out.println("Loaded "+ fname);
+            } catch (Exception ex) {
+                System.out.println("Exception loading properties file: " + ex);
+                return;
+            }
+            XHSIPreferences xp = XHSIPreferences.get_instance();
+            for (String key : p.stringPropertyNames()) {
+                xp.set_preference(key, p.getProperty(key));
+            }
+        }
     }
 
     /**
@@ -471,9 +550,13 @@ public class CmdConfigurator {
     /**
      * gap
      */
-    private void gap(ArrayList<Display.Entry> list) {
+    private void gap(ArrayList<Display.Entry> list, String text) {
         Element e = add(list, new Display.Gap());
         e.setBackground(backgroundColor);
+        if (text.length() > 0) {
+            e.setText(text);
+            e.setForeground(Color.GRAY);
+        }
     }
 
     /**
@@ -487,6 +570,8 @@ public class CmdConfigurator {
         e.setJustifyRight();
         e.setFontAdjust(labelAdjust);
     }
+
+
 
     /**
      * num
@@ -536,7 +621,7 @@ public class CmdConfigurator {
         if (file.exists() && cp.file) {
             System.out.println("Loading from CMD.config file");
             try {
-                String content = new Scanner(file).useDelimiter("\\Z").next(); // ha!
+                String content = new Scanner(file).useDelimiter("\\Z").next(); // Read whole file to string
                 return makeEntryTables(content);
             } catch (Exception ex) {
                 System.out.println("Problem reading autopilot config");
@@ -562,7 +647,7 @@ public class CmdConfigurator {
         +"num(nVS )                     btn(aVS)     btn(aWLV)          \n"
         +"num(nTHR)                     btn(aTHR)    btn(aGS)           \n"
         +"txt(cGEAR)        txt(cFLAP)  btn(aBC)     btn(aFLC)          \n"
-        +"btn(mAPP)         btn(mVOR)   btn(mNAV)    btn(mARC)          \n"
+        +"btn(mAPP)         btn(mVOR)   btn(mNAV)    btn(mMAP)          \n"
         +"btn(mPLN PLAN)    btn(sPOS)   btn(sDATA)   gap()              \n"
         +"btn(sARPT)        btn(sWPT)   btn(sVOR)    btn(sNDB)          \n"
         +"btn(sTFC)         lab(RNGE:)  num(nZOOM)                      \n";
@@ -584,7 +669,7 @@ public class CmdConfigurator {
         +"gap()       lab(AOA:)   txt(cAOA)          txt(cFLAP)   btn(aBC)           \n"
         +"gap()       lab(FF:)    txt(cFF)           txt(cGEAR)   btn(aFLC)          \n"
         +"gap()       lab(Trim:)  txt(cPTCH)         txt(cYAW)    txt(cROLL)         \n"
-        +"btn(mAPP)   btn(mVOR)   btn(mNAV)          btn(mARC)    btn(mPLN PLAN)     \n"
+        +"btn(mAPP)   btn(mVOR)   btn(mNAV)          btn(mMAP    btn(mPLN PLAN)     \n"
         +"btn(sPOS)   btn(sDATA)  lab(RNGE:)         num(nZOOM)                      \n"
         +"btn(sARPT)  btn(sWPT)   btn(sVOR)          btn(sNDB)    btn(sTFC)          \n";
 
@@ -598,6 +683,7 @@ public class CmdConfigurator {
         int instruments = -1;
         ArrayList<Config> res =  new ArrayList<Config>();
         ArrayList<Display.Entry> list = null;
+        Vector<String> queue = new Vector<String>();
         String name = "xxx";
         String[] lines = config.split("\n");
         for (String line : lines) {
@@ -606,49 +692,59 @@ public class CmdConfigurator {
                 String[] items = line.split("\\)");
                 for (String item : items) {
                     item = item.trim();
-                    int pos = item.indexOf('(');
-                    if (pos <= 0) {
-                        throw new RuntimeException("Cannot find '(' in item" + item);
-                    }
-                    String op = item.substring(0, pos);
-                    String parms = item.substring(pos+1).trim();
-                    if (op.equals("gap")) {
-                        gap(list);
+                    if (item.startsWith("push ")) {
+                        queue.add(item.substring(5));
                     } else {
-                        if (parms.length() == 0) {
-                            throw new RuntimeException("Cannot parse item" + item);
-                        }
-                        if (op.equals("lab")) {
-                            lab(list, parms);
-                        } else if (op.equals("btn")) {
-                            btn(list, parms.split("\\s+"), Color.BLACK);
-                        } else if (op.equals("txt")) {
-                            btn(list, parms.split("\\s+"), backgroundColor);
-                        } else if (op.equals("num")) {
-                            num(list, parms.split("\\s+"));
-                        } else if (op.equals("background")) {
-                            backgroundColor = parseColor(parms);
-                        } else if (op.equals("columns")) {
-                            columns = parseInteger(parms);
-                        } else if (op.equals("width")) {
-                            width = parseInteger(parms);
-                        } else if (op.equals("height")) {
-                            height = parseInteger(parms);
-                        } else if (op.equalsIgnoreCase("labelColor")) {
-                            labelColor = parseColor(parms);
-                        } else if (op.equalsIgnoreCase("labelAdjust")) {
-                            labelAdjust = parseFloat(parms);
-                        } else if (op.equalsIgnoreCase("instrument")) {
-                            if (instruments++ >= 0) {
-                                if (instruments > MAX_WINS) {
-                                    throw new RuntimeException("Too many instruments " + instruments);
-                                }
-                                res.add(new Config(name, columns, backgroundColor, width, height, list.toArray(new Display.Entry[0])));
+                        if (item.equals("pull(")) {
+                            item = queue.remove(0);
+                            if (item == null) {
+                                throw new RuntimeException("pull() no data");
                             }
-                            list =  new ArrayList<Display.Entry>();
-                            name = parms;
+                        }
+                        int pos = item.indexOf('(');
+                        if (pos <= 0) {
+                            throw new RuntimeException("Cannot find '(' in item" + item);
+                        }
+                        String op = item.substring(0, pos);
+                        String parms = item.substring(pos+1).trim();
+                        if (op.equals("gap")) {
+                            gap(list, parms);
                         } else {
-                            throw new RuntimeException("Cannot parse item: " + item);
+                            if (parms.length() == 0) {
+                                throw new RuntimeException("Cannot parse item" + item);
+                            }
+                            if (op.equals("lab")) {
+                                lab(list, parms);
+                            } else if (op.equals("txt")) {
+                                btn(list, parms.split("\\s+"), backgroundColor);
+                            } else if (op.equals("btn")) {
+                                btn(list, parms.split("\\s+"), Color.BLACK);
+                            } else if (op.equals("num")) {
+                                num(list, parms.split("\\s+"));
+                            } else if (op.equals("background")) {
+                                backgroundColor = parseColor(parms);
+                            } else if (op.equals("columns")) {
+                                columns = parseInteger(parms);
+                            } else if (op.equals("width")) {
+                                width = parseInteger(parms);
+                            } else if (op.equals("height")) {
+                                height = parseInteger(parms);
+                            } else if (op.equalsIgnoreCase("labelColor")) {
+                                labelColor = parseColor(parms);
+                            } else if (op.equalsIgnoreCase("labelAdjust")) {
+                                labelAdjust = parseFloat(parms);
+                            } else if (op.equalsIgnoreCase("instrument")) {
+                                if (instruments++ >= 0) {
+                                    if (instruments > MAX_WINS) {
+                                        throw new RuntimeException("Too many instruments " + instruments);
+                                    }
+                                    res.add(new Config(name, columns, backgroundColor, width, height, list.toArray(new Display.Entry[0])));
+                                }
+                                list = new ArrayList<Display.Entry>();
+                                name = parms;
+                            } else {
+                                throw new RuntimeException("Cannot parse item: " + item);
+                            }
                         }
                     }
                 }

@@ -150,10 +150,26 @@ public class XHSISettings implements ActionListener, PreferencesObserver {
 //    public static final String ACTION_SET_FUEL_CAPACITY = "Set fuel capacity ...";
     public static final String ACTION_RESET_MAX_FF = "Reset max FF";
 
-    public static final String ACTION_MFD_ARPT_CHART = "Airport Chart";
-    public static final String ACTION_MFD_FPLN = "Flight Plan";
+    public static final String ACTION_MFD_ARPT_CHART  = "Airport Chart";
+    public static final String ACTION_MFD_FPLN        = "Flight Plan";
     public static final String ACTION_MFD_LOWER_EICAS = "Lower EICAS";
-    public static final String ACTION_MFD_RTU = "RTU Display";
+    public static final String ACTION_MFD_RTU         = "RTU Display";
+    public static final String ACTION_MFD_SYSTEM      = "Cruise";
+    public static final String ACTION_MFD_FCTL        = "Flight Controls";
+    public static final String ACTION_MFD_APU         = "APU";
+    public static final String ACTION_MFD_ELEC        = "Electrics";
+    public static final String ACTION_MFD_WHEELS      = "Wheels";
+    public static final String ACTION_MFD_DOOR_OXY    = "Doors and oxygen";
+    public static final String ACTION_MFD_BLEED       = "Bleed air";
+    public static final String ACTION_MFD_COND        = "Air conditionning";
+    public static final String ACTION_MFD_FUEL        = "Fuel";
+    public static final String ACTION_MFD_CAB_PRESS   = "Cabin pressure";
+    public static final String ACTION_MFD_HYDR        = "Hydraulics";
+    public static final String ACTION_MFD_STATUS      = "Status";
+
+    public static final String ACTION_CDU_AIRCRAFT_OR_DUMMY      = "Aircraft's custom FMC (or a dummy)";
+    public static final String ACTION_CDU_XFMC        = "X-FMC";
+    public static final String ACTION_CDU_UFMC        = "UFMC/X737FMC";
 
     public static final String ACTION_CLOCK_UTC = "UTC";
     public static final String ACTION_CLOCK_LT = "Local Time";
@@ -211,6 +227,8 @@ public class XHSISettings implements ActionListener, PreferencesObserver {
 //    public FUEL_UNITS fuel_units = FUEL_UNITS.KG;
 
     public int mfd_mode = 0;
+
+    public int cdu_source = 0;
 
     public int clock_mode = 0;
 
@@ -273,6 +291,22 @@ public class XHSISettings implements ActionListener, PreferencesObserver {
     private JRadioButtonMenuItem radio_button_mfd_fpln;
     private JRadioButtonMenuItem radio_button_mfd_eicas;
     private JRadioButtonMenuItem radio_button_mfd_rtu;
+    private JRadioButtonMenuItem radio_button_mfd_apu;
+    private JRadioButtonMenuItem radio_button_mfd_fctl;
+    private JRadioButtonMenuItem radio_button_mfd_sys;
+    private JRadioButtonMenuItem radio_button_mfd_elec;
+    private JRadioButtonMenuItem radio_button_mfd_wheels;
+    private JRadioButtonMenuItem radio_button_mfd_door_oxy;
+    private JRadioButtonMenuItem radio_button_mfd_bleed;
+    private JRadioButtonMenuItem radio_button_mfd_cond;
+    private JRadioButtonMenuItem radio_button_mfd_fuel;
+    private JRadioButtonMenuItem radio_button_mfd_cab_press;
+    private JRadioButtonMenuItem radio_button_mfd_hydr;
+    private JRadioButtonMenuItem radio_button_mfd_status;
+
+    private JRadioButtonMenuItem radio_button_cdu_aircraft;
+    private JRadioButtonMenuItem radio_button_cdu_xfmc;
+    private JRadioButtonMenuItem radio_button_cdu_ufmc;
 
     private JRadioButtonMenuItem radio_button_clock_utc;
     private JRadioButtonMenuItem radio_button_clock_lt;
@@ -988,7 +1022,7 @@ public class XHSISettings implements ActionListener, PreferencesObserver {
         menu_item.addActionListener(this);
         xhsi_eicas_menu.add(menu_item);
 
-        // add the "Fuel" menu to the menubar
+        // add the "EICAS" menu to the menubar
         menu_bar.add(xhsi_eicas_menu);
 
 
@@ -1015,15 +1049,6 @@ public class XHSISettings implements ActionListener, PreferencesObserver {
         // keep a reference
         this.radio_button_mfd_fpln = radio_button_menu_item;
 
-        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_LOWER_EICAS);
-        radio_button_menu_item.setToolTipText("Lower EICAS");
-        radio_button_menu_item.addActionListener(this);
-        radio_button_menu_item.setSelected(false);
-        mfd_group.add(radio_button_menu_item);
-        xhsi_mfd_menu.add(radio_button_menu_item);
-        // keep a reference
-        this.radio_button_mfd_eicas = radio_button_menu_item;
-
         radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_RTU);
         radio_button_menu_item.setToolTipText("Radio Tuning Unit Display");
         radio_button_menu_item.addActionListener(this);
@@ -1033,8 +1058,178 @@ public class XHSISettings implements ActionListener, PreferencesObserver {
         // keep a reference
         this.radio_button_mfd_rtu = radio_button_menu_item;
 
+        xhsi_mfd_menu.addSeparator();
+
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_LOWER_EICAS);
+        radio_button_menu_item.setToolTipText("Lower EICAS");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        mfd_group.add(radio_button_menu_item);
+        xhsi_mfd_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_mfd_eicas = radio_button_menu_item;
+
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_BLEED);
+        radio_button_menu_item.setToolTipText("Bleed air");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        mfd_group.add(radio_button_menu_item);
+        xhsi_mfd_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_mfd_bleed = radio_button_menu_item;
+
+        /*
+         * TODO : Cabin Pressure
+         */
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_CAB_PRESS);
+        radio_button_menu_item.setToolTipText("Cabin pressure");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        // mfd_group.add(radio_button_menu_item);
+        // xhsi_mfd_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_mfd_cab_press = radio_button_menu_item;
+
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_ELEC);
+        radio_button_menu_item.setToolTipText("Electrics");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        mfd_group.add(radio_button_menu_item);
+        xhsi_mfd_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_mfd_elec = radio_button_menu_item;
+
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_HYDR);
+        radio_button_menu_item.setToolTipText("Hydraulics");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        mfd_group.add(radio_button_menu_item);
+        xhsi_mfd_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_mfd_hydr = radio_button_menu_item;
+
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_FUEL);
+        radio_button_menu_item.setToolTipText("Fuel");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        mfd_group.add(radio_button_menu_item);
+        xhsi_mfd_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_mfd_fuel = radio_button_menu_item;
+
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_APU);
+        radio_button_menu_item.setToolTipText("Auxiliary Power Unit");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        mfd_group.add(radio_button_menu_item);
+        xhsi_mfd_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_mfd_apu = radio_button_menu_item;
+
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_COND);
+        radio_button_menu_item.setToolTipText("Air conditionning");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        mfd_group.add(radio_button_menu_item);
+        xhsi_mfd_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_mfd_cond = radio_button_menu_item;
+
+        /*
+         * TODO : Doors and oxygen
+         */
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_DOOR_OXY);
+        radio_button_menu_item.setToolTipText("Doors and oxygen");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        // mfd_group.add(radio_button_menu_item);
+        // xhsi_mfd_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_mfd_door_oxy = radio_button_menu_item;
+
+        /*
+         * Wheels
+         */
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_WHEELS);
+        radio_button_menu_item.setToolTipText("Wheels");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        mfd_group.add(radio_button_menu_item);
+        xhsi_mfd_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_mfd_wheels = radio_button_menu_item;
+
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_FCTL);
+        radio_button_menu_item.setToolTipText("Flight Controls");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        mfd_group.add(radio_button_menu_item);
+        xhsi_mfd_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_mfd_fctl = radio_button_menu_item;
+
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_SYSTEM);
+        radio_button_menu_item.setToolTipText("Systems - Cruise");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        mfd_group.add(radio_button_menu_item);
+        xhsi_mfd_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_mfd_sys = radio_button_menu_item;
+
+        /*
+         * TODO : Status
+         */
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_MFD_STATUS);
+        radio_button_menu_item.setToolTipText("Status");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        mfd_group.add(radio_button_menu_item);
+        xhsi_mfd_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_mfd_status = radio_button_menu_item;
+
+
+
         // add the "MFD" menu to the menubar
         menu_bar.add(xhsi_mfd_menu);
+
+
+        // define the "CDU" menu
+        JMenu xhsi_cdu_menu = new JMenu("CDU");
+
+        ButtonGroup cdu_group = new ButtonGroup();
+
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_CDU_AIRCRAFT_OR_DUMMY);
+        radio_button_menu_item.setToolTipText("Aircraft's custom FMC, if available");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(true);
+        cdu_group.add(radio_button_menu_item);
+        xhsi_cdu_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_cdu_aircraft = radio_button_menu_item;
+
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_CDU_XFMC);
+        radio_button_menu_item.setToolTipText("X-FMC");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        cdu_group.add(radio_button_menu_item);
+        xhsi_cdu_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_cdu_xfmc = radio_button_menu_item;
+
+        radio_button_menu_item = new JRadioButtonMenuItem(XHSISettings.ACTION_CDU_UFMC);
+        radio_button_menu_item.setToolTipText("UFMC or X737FMC");
+        radio_button_menu_item.addActionListener(this);
+        radio_button_menu_item.setSelected(false);
+        // TODO : for beta 9 version
+        // cdu_group.add(radio_button_menu_item);
+        // xhsi_cdu_menu.add(radio_button_menu_item);
+        // keep a reference
+        this.radio_button_cdu_ufmc = radio_button_menu_item;
+
+        // add the "CDU" menu to the menubar
+        menu_bar.add(xhsi_cdu_menu);
 
 
         // define the "Clock" menu
@@ -1290,12 +1485,59 @@ public class XHSISettings implements ActionListener, PreferencesObserver {
         } else if (command.equals(XHSISettings.ACTION_MFD_FPLN)) {
             mfd_mode = Avionics.MFD_MODE_FPLN;
             this.avionics.set_mfd_mode(mfd_mode);
-        } else if (command.equals(XHSISettings.ACTION_MFD_LOWER_EICAS)) {
-            mfd_mode = Avionics.MFD_MODE_EICAS;
-            this.avionics.set_mfd_mode(mfd_mode);
         } else if (command.equals(XHSISettings.ACTION_MFD_RTU)) {
             mfd_mode = Avionics.MFD_MODE_RTU;
             this.avionics.set_mfd_mode(mfd_mode);
+
+        } else if (command.equals(XHSISettings.ACTION_MFD_LOWER_EICAS)) {
+            mfd_mode = Avionics.MFD_MODE_EICAS;
+            this.avionics.set_mfd_mode(mfd_mode);
+        } else if (command.equals(XHSISettings.ACTION_MFD_BLEED)) {
+            mfd_mode = Avionics.MFD_MODE_BLEED;
+            this.avionics.set_mfd_mode(mfd_mode);
+        } else if (command.equals(XHSISettings.ACTION_MFD_CAB_PRESS)) {
+            mfd_mode = Avionics.MFD_MODE_CAB_PRESS;
+            this.avionics.set_mfd_mode(mfd_mode);
+        } else if (command.equals(XHSISettings.ACTION_MFD_ELEC)) {
+            mfd_mode = Avionics.MFD_MODE_ELEC;
+            this.avionics.set_mfd_mode(mfd_mode);
+        } else if (command.equals(XHSISettings.ACTION_MFD_HYDR)) {
+            mfd_mode = Avionics.MFD_MODE_HYDR;
+            this.avionics.set_mfd_mode(mfd_mode);
+        } else if (command.equals(XHSISettings.ACTION_MFD_FUEL)) {
+            mfd_mode = Avionics.MFD_MODE_FUEL;
+            this.avionics.set_mfd_mode(mfd_mode);
+        } else if (command.equals(XHSISettings.ACTION_MFD_APU)) {
+            mfd_mode = Avionics.MFD_MODE_APU;
+            this.avionics.set_mfd_mode(mfd_mode);
+        } else if (command.equals(XHSISettings.ACTION_MFD_COND)) {
+            mfd_mode = Avionics.MFD_MODE_COND;
+            this.avionics.set_mfd_mode(mfd_mode);
+        } else if (command.equals(XHSISettings.ACTION_MFD_DOOR_OXY)) {
+            mfd_mode = Avionics.MFD_MODE_DOOR_OXY;
+            this.avionics.set_mfd_mode(mfd_mode);
+        } else if (command.equals(XHSISettings.ACTION_MFD_WHEELS)) {
+            mfd_mode = Avionics.MFD_MODE_WHEELS;
+            this.avionics.set_mfd_mode(mfd_mode);
+        } else if (command.equals(XHSISettings.ACTION_MFD_FCTL)) {
+            mfd_mode = Avionics.MFD_MODE_FCTL;
+            this.avionics.set_mfd_mode(mfd_mode);
+        } else if (command.equals(XHSISettings.ACTION_MFD_SYSTEM)) {
+            mfd_mode = Avionics.MFD_MODE_SYS;
+            this.avionics.set_mfd_mode(mfd_mode);
+        } else if (command.equals(XHSISettings.ACTION_MFD_STATUS)) {
+            mfd_mode = Avionics.MFD_MODE_STATUS;
+            this.avionics.set_mfd_mode(mfd_mode);
+
+        } else if (command.equals(XHSISettings.ACTION_CDU_AIRCRAFT_OR_DUMMY)) {
+            cdu_source = Avionics.CDU_SOURCE_AIRCRAFT_OR_DUMMY;
+            this.avionics.set_cdu_source(cdu_source);
+        } else if (command.equals(XHSISettings.ACTION_CDU_XFMC)) {
+            cdu_source = Avionics.CDU_SOURCE_XFMC;
+            this.avionics.set_cdu_source(cdu_source);
+        } else if (command.equals(XHSISettings.ACTION_CDU_UFMC)) {
+            cdu_source = Avionics.CDU_SOURCE_UFMC;
+            this.avionics.set_cdu_source(cdu_source);
 
         } else if (command.equals(XHSISettings.ACTION_CLOCK_UTC)) {
             clock_mode = Avionics.CLOCK_MODE_UTC;
@@ -1311,27 +1553,27 @@ public class XHSISettings implements ActionListener, PreferencesObserver {
     }
 
     public void setRange(String command) {
-        for (int i=0; i<this.range_list.length; i++) {
-            if (command.equals(this.range_list[i])) {
-                // Range override
-                map_range = Integer.parseInt(command);
-                map_range_index = i;
-                this.avionics.set_range_index(i);
-                map_zoomin = false;
-                this.avionics.set_zoomin(map_zoomin);
+            for (int i=0; i<this.range_list.length; i++) {
+                if (command.equals(this.range_list[i])) {
+                    // Range override
+                    map_range = Integer.parseInt(command);
+                    map_range_index = i;
+                    this.avionics.set_range_index(i);
+                    map_zoomin = false;
+                    this.avionics.set_zoomin(map_zoomin);
+                }
             }
-        }
-        for (int i=0; i<this.zoomin_range_list.length; i++) {
-            if (command.equals(this.zoomin_range_list[i])) {
-                // Range override
-                // A trick: use the standard range list, but with map_zoomin set to true
-                map_range = Integer.parseInt(this.range_list[i]);
-                map_range_index = i;
-                this.avionics.set_range_index(i);
-                map_zoomin = true;
-                this.avionics.set_zoomin(map_zoomin);
+            for (int i=0; i<this.zoomin_range_list.length; i++) {
+                if (command.equals(this.zoomin_range_list[i])) {
+                    // Range override
+                    // A trick: use the standard range list, but with map_zoomin set to true
+                    map_range = Integer.parseInt(this.range_list[i]);
+                    map_range_index = i;
+                    this.avionics.set_range_index(i);
+                    map_zoomin = true;
+                    this.avionics.set_zoomin(map_zoomin);
+                }
             }
-        }
     }
 
     public void mapZoomIn() {
@@ -1401,11 +1643,11 @@ public class XHSISettings implements ActionListener, PreferencesObserver {
     }
 
 
-
     public void setSource(int src) {
         this.source = src;
         avionics.set_hsi_source(src);
     }
+
 
     public void setMode(int mode) {
         map_mode = mode;
@@ -1413,8 +1655,8 @@ public class XHSISettings implements ActionListener, PreferencesObserver {
     }
 
 
-    public void nextMFD() {
-        mfd_mode = ++mfd_mode % 4;
+    public void setMFD(int mode) {
+        mfd_mode = mode;
         avionics.set_mfd_mode(mfd_mode);
     }
 
@@ -1493,13 +1735,49 @@ public class XHSISettings implements ActionListener, PreferencesObserver {
         int new_mfd_mode = avionics.get_mfd_mode();
         this.radio_button_mfd_arpt.setSelected( new_mfd_mode == Avionics.MFD_MODE_ARPT );
         this.radio_button_mfd_fpln.setSelected( new_mfd_mode == Avionics.MFD_MODE_FPLN );
-        this.radio_button_mfd_eicas.setSelected( new_mfd_mode == Avionics.MFD_MODE_EICAS );
         this.radio_button_mfd_rtu.setSelected( new_mfd_mode == Avionics.MFD_MODE_RTU );
-        switchable = prefs.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_SWITCHABLE) || prefs.get_preference(XHSIPreferences.PREF_INSTRUMENT_POSITION).equals(XHSIPreferences.INSTRUCTOR);
+        this.radio_button_mfd_eicas.setSelected( new_mfd_mode == Avionics.MFD_MODE_EICAS );
+        this.radio_button_mfd_apu.setSelected( new_mfd_mode == Avionics.MFD_MODE_APU );
+        this.radio_button_mfd_fctl.setSelected( new_mfd_mode == Avionics.MFD_MODE_FCTL );
+        this.radio_button_mfd_sys.setSelected( new_mfd_mode == Avionics.MFD_MODE_SYS );
+        this.radio_button_mfd_elec.setSelected( new_mfd_mode == Avionics.MFD_MODE_ELEC );
+        this.radio_button_mfd_wheels.setSelected( new_mfd_mode == Avionics.MFD_MODE_WHEELS );
+        this.radio_button_mfd_door_oxy.setSelected( new_mfd_mode == Avionics.MFD_MODE_DOOR_OXY );
+        this.radio_button_mfd_bleed.setSelected( new_mfd_mode == Avionics.MFD_MODE_BLEED );
+        this.radio_button_mfd_cond.setSelected( new_mfd_mode == Avionics.MFD_MODE_COND );
+        this.radio_button_mfd_fuel.setSelected( new_mfd_mode == Avionics.MFD_MODE_FUEL );
+        this.radio_button_mfd_cab_press.setSelected( new_mfd_mode == Avionics.MFD_MODE_CAB_PRESS );
+        this.radio_button_mfd_hydr.setSelected( new_mfd_mode == Avionics.MFD_MODE_HYDR );
+        this.radio_button_mfd_status.setSelected( new_mfd_mode == Avionics.MFD_MODE_STATUS );
+
+        switchable = prefs.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_SWITCHABLE)
+                || prefs.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_LINKED)
+                || prefs.get_preference(XHSIPreferences.PREF_INSTRUMENT_POSITION).equals(XHSIPreferences.INSTRUCTOR);
         this.radio_button_mfd_arpt.setEnabled( switchable );
         this.radio_button_mfd_fpln.setEnabled( switchable );
         this.radio_button_mfd_eicas.setEnabled( switchable );
         this.radio_button_mfd_rtu.setEnabled( switchable );
+        this.radio_button_mfd_apu.setEnabled( switchable );
+        this.radio_button_mfd_fctl.setEnabled( switchable );
+        this.radio_button_mfd_sys.setEnabled( switchable );
+        this.radio_button_mfd_elec.setEnabled( switchable );
+        this.radio_button_mfd_wheels.setEnabled( switchable );
+        this.radio_button_mfd_door_oxy.setEnabled( switchable );
+        this.radio_button_mfd_bleed.setEnabled( switchable );
+        this.radio_button_mfd_cond.setEnabled( switchable );
+        this.radio_button_mfd_fuel.setEnabled( switchable );
+        this.radio_button_mfd_cab_press.setEnabled( switchable );
+        this.radio_button_mfd_hydr.setEnabled( switchable );
+        this.radio_button_mfd_status.setEnabled( switchable );
+
+        switchable = prefs.get_preference(XHSIPreferences.PREF_CDU_SOURCE).equals(XHSIPreferences.CDU_SOURCE_SWITCHABLE);
+        this.radio_button_cdu_aircraft.setEnabled( switchable );
+        this.radio_button_cdu_xfmc.setEnabled( switchable );
+        this.radio_button_cdu_ufmc.setEnabled( switchable );
+        int new_cdu_source = avionics.get_cdu_source();
+        this.radio_button_cdu_aircraft.setSelected( new_cdu_source == Avionics.CDU_SOURCE_AIRCRAFT_OR_DUMMY );
+        this.radio_button_cdu_xfmc.setSelected( new_cdu_source == Avionics.CDU_SOURCE_XFMC );
+        this.radio_button_cdu_ufmc.setSelected( new_cdu_source == Avionics.CDU_SOURCE_UFMC );
 
         boolean new_clock_mode = avionics.clock_shows_utc();
         this.radio_button_clock_utc.setSelected(new_clock_mode);

@@ -440,6 +440,10 @@ public class NavigationObjectRepository {
         double nrst_dist = 99999.0d;
         ArrayList<NavigationObject> navobj_list;
         
+        double dist;
+        double delta_lon;
+        double cos_lat = Math.cos(Math.toRadians(my_lat));
+
         for (int grid_lat=0; grid_lat<181; grid_lat++) {
             for (int grid_lon=0; grid_lon<361; grid_lon++) {
 
@@ -448,7 +452,9 @@ public class NavigationObjectRepository {
                 while ( index < navobj_list.size() ) {
                     Airport arpt = (Airport)navobj_list.get(index);
                     if ( arpt.longest >= min_rwy ) {
-                        double dist = Math.hypot( (my_lat - arpt.lat) * Math.cos(my_lat), (my_lon - arpt.lon));
+                        delta_lon = Math.abs(my_lon - arpt.lon);
+                        if ( delta_lon > 270.0 ) delta_lon = 360.0 - delta_lon; // close to the Internationale Date Line, with one point on either side
+                        dist = Math.hypot( (my_lat - arpt.lat), delta_lon * cos_lat );
                         if ( dist < nrst_dist ) {
                             nrst_dist = dist;
                             nrst_arpt = arpt.icao_code;
@@ -457,10 +463,10 @@ public class NavigationObjectRepository {
                     index += 1;
                 }
             }
-            if ( no_hurry ) try { Thread.sleep(1l); } catch(Exception e) {}
+            if ( no_hurry ) try { Thread.sleep(5l); } catch(Exception e) {}
         }
         
-        logger.finest("NRST ARPT = "+nrst_arpt);
+        logger.fine("NRST ARPT = "+nrst_arpt);
         
         return nrst_arpt;
         

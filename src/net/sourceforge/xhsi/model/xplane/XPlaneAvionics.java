@@ -40,6 +40,7 @@ import net.sourceforge.xhsi.model.SimDataRepository;
 import net.sourceforge.xhsi.model.TCAS;
 import net.sourceforge.xhsi.model.Avionics.FailedElement;
 import net.sourceforge.xhsi.model.Avionics.FailureMode;
+import net.sourceforge.xhsi.model.Avionics.InstrumentSide;
 
 
 public class XPlaneAvionics implements Avionics, Observer {
@@ -296,6 +297,18 @@ public class XPlaneAvionics implements Avionics, Observer {
         return ( (int)sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_RADIOS_ACTUATORS_COM2_STANDBY_FREQUENCY_HZ_833) % 25 ) != 0;
     }
 
+    public boolean contact_atc() {
+        return sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_RTU_CONTACT_ATC) != 0.0f;
+    };
+
+    public boolean pilotedge_rx() {
+        return sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_RTU_PILOTEDGE_RX) != 0.0f;
+    };
+
+    public int rtu_selected_radio() {
+        return (int)sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_RTU_SELECTED_RADIO);
+    };
+
 
     public int get_instrument_style() {
 
@@ -365,6 +378,25 @@ public class XPlaneAvionics implements Avionics, Observer {
 
     }
 
+    public int map_range_index(InstrumentSide side) {
+        // ranges: 0:10, 1:20, 2:40, 3:80, 4:160, 5:320, 6:640
+        if ( side == InstrumentSide.PILOT ) {
+            if (this.qpac_version() > 150) {
+                return (int) (sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_EFIS_ND_RANGE_CAPT));
+            } else {
+                return (int) sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_SWITCHES_EFIS_MAP_RANGE_SELECTOR);
+            }
+        } else if ( side == InstrumentSide.COPILOT ){
+            if (this.qpac_version() > 150) {
+                return (int) (sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_EFIS_ND_RANGE_FO));
+            } else {
+                return (int) sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_EFIS_COPILOT_MAP_RANGE);
+            }
+        } else {
+            return xhsi_settings.map_range_index;
+        }
+    }
+
 
     public int map_range() {
 
@@ -387,6 +419,25 @@ public class XPlaneAvionics implements Avionics, Observer {
 
     }
 
+    public int map_range(InstrumentSide side) {
+        // ranges: 10, 20, 40, 80, 160, 320, 640
+        if ( side == InstrumentSide.PILOT ) {
+            if (this.qpac_version() > 150) {
+                return EFIS_MAP_RANGE[ (int) (sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_EFIS_ND_RANGE_CAPT))];
+            } else {
+                return EFIS_MAP_RANGE[ (int) sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_SWITCHES_EFIS_MAP_RANGE_SELECTOR) ];
+            }
+        } else if ( side == InstrumentSide.COPILOT ) {
+            if (this.qpac_version() > 150) {
+                return EFIS_MAP_RANGE[ (int) (sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_EFIS_ND_RANGE_FO))];
+            } else {
+                return EFIS_MAP_RANGE[ (int) sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_EFIS_COPILOT_MAP_RANGE) ];
+            }
+        } else {
+            return xhsi_settings.map_range;
+        }
+    }
+
 
     public boolean map_zoomin() {
 
@@ -398,6 +449,16 @@ public class XPlaneAvionics implements Avionics, Observer {
             return xhsi_settings.map_zoomin;
         }
 
+    }
+
+    public boolean map_zoomin(InstrumentSide side) {
+        if ( side == InstrumentSide.PILOT ) {
+            return sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_EFIS_PILOT_MAP_ZOOMIN) == 1.0f;
+        } else if ( side == InstrumentSide.COPILOT ){
+            return sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_EFIS_COPILOT_MAP_ZOOMIN) == 1.0f;
+        } else {
+            return xhsi_settings.map_zoomin;
+        }
     }
 
 
@@ -414,6 +475,16 @@ public class XPlaneAvionics implements Avionics, Observer {
 
     }
 
+    public int map_mode(InstrumentSide side) {
+        // modes: 0=centered, 1=expanded (see the constants in model/Avionics)
+        if ( side == InstrumentSide.PILOT ) {
+            return (int) (sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_SWITCHES_EFIS_MAP_MODE));
+        } else if ( side == InstrumentSide.COPILOT ) {
+            return (int) (sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_EFIS_COPILOT_MAP_CTR));
+        } else {
+            return xhsi_settings.map_centered;
+        }
+    }
 
     public int map_submode() {
 
@@ -434,6 +505,25 @@ public class XPlaneAvionics implements Avionics, Observer {
             return xhsi_settings.map_mode;
         }
 
+    }
+
+    public int map_submode(InstrumentSide side) {
+        // submodes: 0=APP, 1=VOR, 2=MAP, 3=NAV, 4=PLN (see the constants in model/Avionics)
+        if ( side == InstrumentSide.PILOT ) {
+            if (this.qpac_version() > 110) {
+                return (int) (sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_EFIS_ND_MODE_CAPT));
+            } else {
+                return (int) (sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_SWITCHES_EFIS_MAP_SUBMODE));
+            }
+        } else if ( side == InstrumentSide.COPILOT ) {
+            if (this.qpac_version() > 110) {
+                return (int) (sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_EFIS_ND_MODE_FO));
+            } else {
+                return (int) (sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_EFIS_COPILOT_MAP_MODE));
+            }
+        } else {
+            return xhsi_settings.map_mode;
+        }
     }
 
 
@@ -472,6 +562,17 @@ public class XPlaneAvionics implements Avionics, Observer {
 
     }
 
+    public int efis_radio1(InstrumentSide side) {
+        if ( side == InstrumentSide.PILOT ) {
+            return (int) (sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_SWITCHES_EFIS_DME_1_SELECTOR));
+        } else if ( side == InstrumentSide.COPILOT ) {
+            return (int) (sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_EFIS_COPILOT_RADIO1));
+        } else {
+            return xhsi_settings.radio1;
+        }
+    }
+
+
     public int efis_radio2() {
 
         //return (int) sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_SWITCHES_EFIS_DME_2_SELECTOR);
@@ -483,6 +584,25 @@ public class XPlaneAvionics implements Avionics, Observer {
             return xhsi_settings.radio2;
         }
 
+    }
+
+    public int efis_radio2(InstrumentSide side) {
+        if ( side == InstrumentSide.PILOT ) {
+            return (int) (sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_SWITCHES_EFIS_DME_2_SELECTOR));
+        } else if ( side == InstrumentSide.COPILOT ) {
+            return (int) (sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_EFIS_COPILOT_RADIO2));
+        } else {
+            return xhsi_settings.radio2;
+        }
+    }
+
+    public boolean efis_shows_cstr() {
+        // TODO: Implement show constraints EFIS button
+        return true;
+    }
+
+    public boolean efis_shows_cstr(InstrumentSide side) {
+        return true;
     }
 
 
@@ -499,6 +619,16 @@ public class XPlaneAvionics implements Avionics, Observer {
 
     }
 
+    public boolean efis_shows_wpt(InstrumentSide side) {
+        if ( side == InstrumentSide.PILOT ) {
+            return (sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_SWITCHES_EFIS_SHOWS_WAYPOINTS) == 1.0f);
+        } else if ( side == InstrumentSide.COPILOT ) {
+            return (sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_EFIS_COPILOT_WPT) == 1.0f);
+        } else {
+            return xhsi_settings.show_wpt;
+        }
+    }
+
 
     public boolean efis_shows_ndb() {
 
@@ -511,6 +641,16 @@ public class XPlaneAvionics implements Avionics, Observer {
             return xhsi_settings.show_ndb;
         }
 
+    }
+
+    public boolean efis_shows_ndb(InstrumentSide side) {
+        if ( side == InstrumentSide.PILOT ) {
+            return (sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_SWITCHES_EFIS_SHOWS_NDBS) == 1.0f);
+        } else if ( side == InstrumentSide.COPILOT ) {
+            return (sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_EFIS_COPILOT_NDB) == 1.0f);
+        } else {
+            return xhsi_settings.show_ndb;
+        }
     }
 
 
@@ -527,6 +667,16 @@ public class XPlaneAvionics implements Avionics, Observer {
 
     }
 
+    public boolean efis_shows_vor(InstrumentSide side) {
+        if ( side == InstrumentSide.PILOT ) {
+            return (sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_SWITCHES_EFIS_SHOWS_VORS) == 1.0f);
+        } else if ( side == InstrumentSide.COPILOT ) {
+            return (sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_EFIS_COPILOT_VOR) == 1.0f);
+        } else {
+            return xhsi_settings.show_vor;
+        }
+    }
+
 
     public boolean efis_shows_arpt() {
 
@@ -541,6 +691,16 @@ public class XPlaneAvionics implements Avionics, Observer {
 
     }
 
+    public boolean efis_shows_arpt(InstrumentSide side) {
+        if ( side == InstrumentSide.PILOT ) {
+            return (sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_SWITCHES_EFIS_SHOWS_AIRPORTS) == 1.0f);
+        } else if ( side == InstrumentSide.COPILOT ) {
+            return (sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_EFIS_COPILOT_ARPT) == 1.0f);
+        } else {
+            return xhsi_settings.show_arpt;
+        }
+    }
+
 
     public boolean efis_shows_tfc() {
 
@@ -552,7 +712,16 @@ public class XPlaneAvionics implements Avionics, Observer {
         } else {
             return xhsi_settings.show_tfc;
         }
+    }
 
+    public boolean efis_shows_tfc(InstrumentSide side) {
+        if ( side == InstrumentSide.PILOT ) {
+            return (sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_SWITCHES_EFIS_SHOWS_TCAS) == 1.0f);
+        } else if ( side == InstrumentSide.COPILOT ) {
+            return (sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_EFIS_COPILOT_TFC) == 1.0f);
+        } else {
+            return xhsi_settings.show_tfc;
+        }
     }
 
 
@@ -581,6 +750,25 @@ public class XPlaneAvionics implements Avionics, Observer {
 
     }
 
+    public int qpac_get_mfd_mode() {
+        int sd_page = (int) sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_SD_PAGE);
+        switch (sd_page) {
+            case 0 : return Avionics.MFD_MODE_EICAS;
+            case 1 : return Avionics.MFD_MODE_BLEED;
+            case 2 : return Avionics.MFD_MODE_CAB_PRESS;
+            case 3 : return Avionics.MFD_MODE_ELEC;
+            case 4 : return Avionics.MFD_MODE_HYDR;
+            case 5 : return Avionics.MFD_MODE_FUEL;
+            case 6 : return Avionics.MFD_MODE_APU;
+            case 7 : return Avionics.MFD_MODE_COND;
+            case 8 : return Avionics.MFD_MODE_DOOR_OXY;
+            case 9 : return Avionics.MFD_MODE_WHEELS;
+            case 10: return Avionics.MFD_MODE_FCTL;
+            case 11: return Avionics.MFD_MODE_SYS;
+            case 12: return Avionics.MFD_MODE_STATUS;
+        }
+        return (int)sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_MFD_MODE);
+    }
 
     public int get_mfd_mode() {
 
@@ -589,15 +777,73 @@ public class XPlaneAvionics implements Avionics, Observer {
         } else {
             if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_SWITCHABLE)) {
                 return (int)sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_MFD_MODE);
-//            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_TAXI_CHART)) {
-//                return 0;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_LINKED)) {
+                if (is_qpac()) {
+                    return qpac_get_mfd_mode();
+                } else {
+                    // like mode_switchable
+                    return (int)sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_MFD_MODE);
+                }
             } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_ARPT_CHART)) {
                 return Avionics.MFD_MODE_ARPT;
             } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_FPLN)) {
                 return Avionics.MFD_MODE_FPLN;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_LOWER_EICAS)) {
+                return Avionics.MFD_MODE_EICAS;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_RTU)) {
+                return Avionics.MFD_MODE_RTU;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_SYS)) {
+                return Avionics.MFD_MODE_SYS;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_FCTL)) {
+                return Avionics.MFD_MODE_FCTL;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_APU)) {
+                return Avionics.MFD_MODE_APU;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_ELEC)) {
+                return Avionics.MFD_MODE_ELEC;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_WHEELS)) {
+                return Avionics.MFD_MODE_WHEELS;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_DOOR_OXY)) {
+                return Avionics.MFD_MODE_DOOR_OXY;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_BLEED)) {
+                return Avionics.MFD_MODE_BLEED;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_COND)) {
+                return Avionics.MFD_MODE_COND;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_FUEL)) {
+                return Avionics.MFD_MODE_FUEL;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_CAB_PRESS)) {
+                return Avionics.MFD_MODE_CAB_PRESS;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_HYDR)) {
+                return Avionics.MFD_MODE_HYDR;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_MFD_MODE).equals(XHSIPreferences.MFD_MODE_STATUS)) {
+                return Avionics.MFD_MODE_STATUS;
             } else {
                 return Avionics.MFD_MODE_EICAS;
             }
+            // TODO : add pages
+
+        }
+
+    }
+
+
+    public int get_cdu_source() {
+
+        if ( xhsi_preferences.get_instrument_operator().equals( XHSIPreferences.INSTRUCTOR ) ) {
+            return xhsi_settings.cdu_source;
+        } else {
+            if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_CDU_SOURCE).equals(XHSIPreferences.CDU_SOURCE_SWITCHABLE)) {
+                return (int)sim_data.get_sim_float(XPlaneSimDataRepository.XHSI_CDU_SOURCE);
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_CDU_SOURCE).equals(XHSIPreferences.CDU_SOURCE_AIRCRAFT_OR_DUMMY)) {
+                return Avionics.CDU_SOURCE_AIRCRAFT_OR_DUMMY;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_CDU_SOURCE).equals(XHSIPreferences.CDU_SOURCE_XFMC)) {
+                return Avionics.CDU_SOURCE_XFMC;
+            } else if ( xhsi_preferences.get_preference(XHSIPreferences.PREF_CDU_SOURCE).equals(XHSIPreferences.CDU_SOURCE_UFMC)) {
+                return Avionics.CDU_SOURCE_UFMC;
+            } else {
+                // Error, fallback
+                return Avionics.CDU_SOURCE_AIRCRAFT_OR_DUMMY;
+            }
+
         }
 
     }
@@ -941,6 +1187,12 @@ public class XPlaneAvionics implements Avionics, Observer {
 
     }
 
+    public boolean transponder_ident() {
+
+        return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_RADIOS_TRANSPONDER_ID) != 0.0f;
+
+    };
+
     public boolean clock_shows_utc() {
         return (sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT2_CLOCK_TIMER_MODE) == 0.0f );
     }
@@ -1010,7 +1262,10 @@ public class XPlaneAvionics implements Avionics, Observer {
 
     public boolean nav2_gs_active() { return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_RADIOS_NAV2_CDI) != 0.0f; }
 
-    public boolean gps_gs_active() { return false; }
+    public boolean gps_gs_active() { return sim_data.get_sim_float(XPlaneSimDataRepository.SIM_COCKPIT_RADIOS_GPS_HAS_GLIDESLOPE) != 0.0f; }
+
+    public String gps_nav_id() { return sim_data.get_sim_string(XPlaneSimDataRepository.SIM_COCKPIT2_RADIOS_INDICATORS_GPS_NAV_ID_0_3) + sim_data.get_sim_string(XPlaneSimDataRepository.SIM_COCKPIT2_RADIOS_INDICATORS_GPS_NAV_ID_4_7); }
+
 
     // PFD Display options
     public boolean pfd_show_metric_alt () {
@@ -1020,9 +1275,18 @@ public class XPlaneAvionics implements Avionics, Observer {
             return jar_a320neo_fcu_metric_alt();
         else return false;
     }
+
     public boolean pfd_show_baro_hpa () {
         if (this.is_qpac())
             return qpac_baro_unit();
+        else if (this.is_jar_a320neo() )
+            return jar_a320neo_baro_unit();
+        else return false;
+    }
+
+    public boolean pfd_show_baro_hpa (InstrumentSide side) {
+        if (this.is_qpac())
+            return qpac_baro_unit(side);
         else if (this.is_jar_a320neo() )
             return jar_a320neo_baro_unit();
         else return false;
@@ -1182,21 +1446,35 @@ public class XPlaneAvionics implements Avionics, Observer {
     }
 
     // Baro
-    public boolean qpac_baro_std(){
+    public boolean qpac_baro_std() {
         int qpac_fcu_baro = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_FCU_BARO));
         if (xhsi_preferences.get_instrument_operator().equals( XHSIPreferences.COPILOT ))
             return (qpac_fcu_baro & 0x40) > 0 ? true : false;
         else
             return (qpac_fcu_baro & 0x04) > 0 ? true : false;
     }
-    public boolean qpac_baro_unit(){
+    public boolean qpac_baro_std(InstrumentSide side) {
+        int qpac_fcu_baro = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_FCU_BARO));
+        if ( side != InstrumentSide.PILOT )
+            return (qpac_fcu_baro & 0x40) > 0 ? true : false;
+        else
+            return (qpac_fcu_baro & 0x04) > 0 ? true : false;
+    }
+    public boolean qpac_baro_unit() {
         int qpac_fcu_baro = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_FCU_BARO));
         if (xhsi_preferences.get_instrument_operator().equals( XHSIPreferences.COPILOT ))
             return (qpac_fcu_baro & 0x20) > 0 ? true : false;
         else
             return (qpac_fcu_baro & 0x02) > 0 ? true : false;
     }
-    public boolean qpac_baro_hide(){
+    public boolean qpac_baro_unit(InstrumentSide side) {
+        int qpac_fcu_baro = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_FCU_BARO));
+        if ( side != InstrumentSide.PILOT )
+            return (qpac_fcu_baro & 0x20) > 0 ? true : false;
+        else
+            return (qpac_fcu_baro & 0x02) > 0 ? true : false;
+    }
+    public boolean qpac_baro_hide() {
         int qpac_fcu_baro = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_FCU_BARO));
         if (xhsi_preferences.get_instrument_operator().equals( XHSIPreferences.COPILOT ))
             return (qpac_fcu_baro & 0x10) > 0 ? false : true;
@@ -1259,6 +1537,14 @@ public class XPlaneAvionics implements Avionics, Observer {
     public boolean qpac_ils_on(){
         int qpac_ils_data = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_ILS_FLAGS));
         if (xhsi_preferences.get_instrument_operator().equals( XHSIPreferences.COPILOT ))
+            return (qpac_ils_data & 0x20) > 0 ? true : false;
+        else
+            return (qpac_ils_data & 0x10) > 0 ? true : false;
+    }
+
+    public boolean qpac_ils_on(InstrumentSide side) {
+        int qpac_ils_data = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_ILS_FLAGS));
+        if ( side != InstrumentSide.PILOT )
             return (qpac_ils_data & 0x20) > 0 ? true : false;
         else
             return (qpac_ils_data & 0x10) > 0 ? true : false;
@@ -1374,6 +1660,11 @@ public class XPlaneAvionics implements Avionics, Observer {
     // Failures
     public float qpac_failures() {
         return sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_FAILURES);
+    }
+    // Flight controls computers
+    public boolean qpac_fcc(int pos) {
+        int fcc_status = Math.round(sim_data.get_sim_float(XPlaneSimDataRepository.QPAC_FCC));
+        return ((fcc_status >> pos) & 0x01) != 0;
     }
 
 
@@ -1791,7 +2082,42 @@ public class XPlaneAvionics implements Avionics, Observer {
 
         if ( ! xhsi_preferences.get_instrument_operator().equals( XHSIPreferences.INSTRUCTOR ) ) {
             udp_sender.sendDataPoint( XPlaneSimDataRepository.XHSI_MFD_MODE, (float) new_mode );
+            if (this.is_qpac()) {
+                int sd_page = -1;
+                // Don't switch QPAC ECAM SD page if custom XHSI MFD page is displayed : Flight Plan , or Airport Chart
+                // TODO : introduce a preference setting to disable MFD menu link to ECAM SD page
+                switch (new_mode) {
+
+                    case Avionics.MFD_MODE_ARPT:
+                    case Avionics.MFD_MODE_FPLN:
+                    case Avionics.MFD_MODE_RTU: sd_page = -1; break;
+                    case Avionics.MFD_MODE_ENGINE: sd_page = 0; break;
+                    case Avionics.MFD_MODE_BLEED: sd_page = 1; break;
+                    case Avionics.MFD_MODE_CAB_PRESS: sd_page = 2; break;
+                    case Avionics.MFD_MODE_ELEC: sd_page = 3; break;
+                    case Avionics.MFD_MODE_HYDR: sd_page = 4; break;
+                    case Avionics.MFD_MODE_FUEL: sd_page = 5; break;
+                    case Avionics.MFD_MODE_APU: sd_page = 6; break;
+                    case Avionics.MFD_MODE_COND: sd_page = 7; break;
+                    case Avionics.MFD_MODE_DOOR_OXY: sd_page = 8; break;
+                    case Avionics.MFD_MODE_WHEELS: sd_page = 9; break;
+                    case Avionics.MFD_MODE_FCTL: sd_page = 10; break;
+                    case Avionics.MFD_MODE_SYS: sd_page = 11; break;
+                    case Avionics.MFD_MODE_STATUS: sd_page = 12; break;
+
+                }
+                if (sd_page != -1) {
+                    udp_sender.sendDataPoint( XPlaneSimDataRepository.QPAC_SD_PAGE, (float) sd_page );
+                }
+            }
         }
+
+    }
+
+
+    public void set_cdu_source(int new_source) {
+
+        udp_sender.sendDataPoint( XPlaneSimDataRepository.XHSI_CDU_SOURCE, (float) new_source );
 
     }
 

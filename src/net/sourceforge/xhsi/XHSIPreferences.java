@@ -62,6 +62,7 @@ public class XHSIPreferences {
     public static final String PREF_DU_WIDTH = ".width";
     public static final String PREF_DU_HEIGHT = ".height";
     public static final String PREF_DU_BORDER = ".border";
+    public static final String PREF_DU_FSCALE = ".fscale";
     public static final String PREF_DU_SQUARE = ".square";
     public static final String PREF_DU_ORIENTATION = ".orientation";
     public static final String PREF_CONWIN_MINIMIZED = "conwin.minimized";
@@ -98,6 +99,7 @@ public class XHSIPreferences {
     public static final String PREF_COLORED_HSI_COURSE = "pfd.colored.hsi.course";
     public static final String PREF_ND_NAVAID_FREQ = "nd.navaid.frequencies";
     public static final String PREF_ND_WRITE_AP_HDG = "nd.write.ap.heading";
+    public static final String PREF_ND_SHOW_CLOCK = "nd.show.clock";
 
     // PFD options
     public static final String PREF_HORIZON_STYLE = "horizon.style";
@@ -107,6 +109,10 @@ public class XHSIPreferences {
     public static final String PREF_DRAW_AOA = "draw.aoa";
     public static final String PREF_PFD_DRAW_RADIOS = "pfd.draw.radios";
     public static final String PREF_PFD_ADI_CENTERED = "pfd.adi.centered";
+    public static final String PREF_PFD_DRAW_TWINSPEEDS = "pfd.draw.twinspeeds";
+    public static final String PREF_PFD_DRAW_TURNRATE = "pfd.draw.turnrate";
+    public static final String PREF_PFD_DRAW_GMETER = "pfd.draw.gmeter";
+    public static final String PREF_PFD_DRAW_YOKE_INPUT = "pfd.draw.yoke_input";
 
     // EICAS options
     public static final String PREF_EICAS_LAYOUT = "eicas.layout";
@@ -119,6 +125,10 @@ public class XHSIPreferences {
     public static final String PREF_MFD_MODE = "mfd.mode";
     public static final String PREF_ARPT_CHART_COLOR = "arpt.chart.color";
     public static final String PREF_ARPT_CHART_NAV_DEST = "arpt.chart.nav.dest";
+
+    // CDU options
+    public static final String PREF_CDU_DISPLAY_ONLY = "cdu.display.only";
+    public static final String PREF_CDU_SOURCE = "cdu.source";
 
 
     // constants
@@ -136,6 +146,14 @@ public class XHSIPreferences {
     public static final String INSTRUMENT_STYLE_SWITCHABLE = "switchable";
     public static final String INSTRUMENT_STYLE_BOEING = "boeing";
     public static final String INSTRUMENT_STYLE_AIRBUS = "airbus";
+
+    // for PREF_PFD_DRAW_YOKE_INPUT
+    public static final String YOKE_INPUT_NONE = "none";
+    public static final String YOKE_INPUT_AUTO = "auto";
+    public static final String YOKE_INPUT_RUDDER = "rudder";
+    public static final String YOKE_INPUT_ALWAYS = "always";
+    public static final String YOKE_INPUT_ALWAYS_RUDDER = "always+rudder";
+    public enum DrawYokeInputMode { NONE, AUTO, AUTO_RUDDER, ALWAYS, ALWAYS_RUDDER };
 
     // for PREF_HSI_SOURCE
     public static final String USER = "user";
@@ -161,15 +179,36 @@ public class XHSIPreferences {
 
     // for PREF_MFD_MODE
     public static final String MFD_MODE_SWITCHABLE = "switchable";
+    public static final String MFD_MODE_LINKED = "linked";
     public static final String MFD_MODE_ARPT_CHART = "artp_chart";
     public static final String MFD_MODE_FPLN = "fpln";
-    public static final String MFD_MODE_LOWER_EICAS = "lower_eicas";
     public static final String MFD_MODE_RTU = "rtu";
+    public static final String MFD_MODE_LOWER_EICAS = "lower_eicas";
+    public static final String MFD_MODE_SYS = "sys";
+    public static final String MFD_MODE_FCTL = "fctl";
+    public static final String MFD_MODE_APU = "apu";
+    public static final String MFD_MODE_ELEC = "elec";
+    public static final String MFD_MODE_WHEELS = "wheels";
+    public static final String MFD_MODE_DOOR_OXY = "door_oxy";
+    public static final String MFD_MODE_BLEED = "bleed";
+    public static final String MFD_MODE_COND = "cond";
+    public static final String MFD_MODE_FUEL = "fuel";
+    public static final String MFD_MODE_CAB_PRESS = "cab_press";
+    public static final String MFD_MODE_HYDR = "hydr";
+    public static final String MFD_MODE_STATUS = "status";
 
     // for PREF_ARPT_CHART_COLOR
     public static final String ARPT_DIAGRAM_COLOR_AUTO = "auto";
     public static final String ARPT_DIAGRAM_COLOR_DAY = "day";
     public static final String ARPT_DIAGRAM_COLOR_NIGHT = "night";
+
+
+    // for PREF_CDU_SOURCE
+    public static final String CDU_SOURCE_SWITCHABLE = "switchable";
+    public static final String CDU_SOURCE_AIRCRAFT_OR_DUMMY = "aircraft";
+    public static final String CDU_SOURCE_XFMC = "xfmc";
+    public static final String CDU_SOURCE_UFMC = "ufmc";
+
 
 
     public static enum Orientation {
@@ -377,6 +416,14 @@ public class XHSIPreferences {
      */
     public int get_panel_border(int i) {
         return Integer.parseInt(get_preference(PREF_DU_PREPEND + i + PREF_DU_BORDER));
+    }
+
+    /**
+     * @return            - the font scale
+     *
+     */
+    public float get_panel_fscale(int i) {
+        return Float.parseFloat(get_preference(PREF_DU_PREPEND + i + PREF_DU_FSCALE));
     }
 
 
@@ -653,11 +700,20 @@ public class XHSIPreferences {
     }
 
     /**
-     * @return            - Display the navaid frequencies on the map when DATA is on
+     * @return            - Write the AP HDG at the top
      *
      */
     public boolean get_nd_write_ap_hdg() {
         return get_preference(PREF_ND_WRITE_AP_HDG).equalsIgnoreCase("true");
+    }
+
+
+    /**
+     * @return            - Display the Clock/Chronograph
+     *
+     */
+    public boolean get_nd_show_clock() {
+        return get_preference(PREF_ND_SHOW_CLOCK).equalsIgnoreCase("true");
     }
 
 
@@ -751,6 +807,42 @@ public class XHSIPreferences {
         return get_preference(PREF_PFD_ADI_CENTERED).equalsIgnoreCase("true");
     }
 
+    /**
+     * @return            - Draw Vmca and Vyse
+     *
+     */
+    public boolean get_pfd_draw_twinspeeds() {
+        return get_preference(PREF_PFD_DRAW_TWINSPEEDS).equalsIgnoreCase("true");
+    }
+
+    /**
+     * @return            - Draw turn rate indicator
+     *
+     */
+    public boolean get_draw_pfd_turnrate() {
+        return get_preference(PREF_PFD_DRAW_TURNRATE).equalsIgnoreCase("true");
+    }
+
+    /**
+     * @return            - Draw G-meter
+     *
+     */
+    public boolean get_pfd_draw_gmeter() {
+        return get_preference(PREF_PFD_DRAW_GMETER).equalsIgnoreCase("true");
+    }
+
+    /**
+     * @return            - Draw Yoke input
+     *
+     */
+    public DrawYokeInputMode get_pfd_draw_yoke_input() {
+        if ( get_preference(PREF_PFD_DRAW_YOKE_INPUT).equalsIgnoreCase(YOKE_INPUT_NONE) ) { return DrawYokeInputMode.NONE; }
+        else if ( get_preference(PREF_PFD_DRAW_YOKE_INPUT).equalsIgnoreCase(YOKE_INPUT_AUTO) ) { return DrawYokeInputMode.AUTO; }
+        else if ( get_preference(PREF_PFD_DRAW_YOKE_INPUT).equalsIgnoreCase(YOKE_INPUT_RUDDER) ) { return DrawYokeInputMode.AUTO_RUDDER; }
+        else if ( get_preference(PREF_PFD_DRAW_YOKE_INPUT).equalsIgnoreCase(YOKE_INPUT_ALWAYS) ) { return DrawYokeInputMode.ALWAYS; }
+        else return DrawYokeInputMode.ALWAYS_RUDDER;
+    }
+
 
     // EICAS
 
@@ -791,6 +883,18 @@ public class XHSIPreferences {
      */
     public boolean get_arpt_chart_nav_dest() {
         return get_preference(PREF_ARPT_CHART_NAV_DEST).equalsIgnoreCase("true");
+    }
+
+
+
+    // CDU
+
+    /**
+     * @return            - CDU display only (without keyboard)
+     *
+     */
+    public boolean cdu_display_only() {
+        return get_preference(PREF_CDU_DISPLAY_ONLY).equalsIgnoreCase("true");
     }
 
 
@@ -977,6 +1081,11 @@ public class XHSIPreferences {
                 this.unsaved_changes = true;
             }
 
+            if ( ! this.preferences.containsKey(PREF_DU_PREPEND + i + PREF_DU_FSCALE) ) {
+                this.preferences.setProperty(PREF_DU_PREPEND + i + PREF_DU_FSCALE, "1.0");
+                this.unsaved_changes = true;
+            }
+
             if ( ! this.preferences.containsKey(PREF_DU_PREPEND + i + PREF_DU_SQUARE) ) {
                 this.preferences.setProperty(PREF_DU_PREPEND + i + PREF_DU_SQUARE, "false");
                 this.unsaved_changes = true;
@@ -1022,11 +1131,11 @@ public class XHSIPreferences {
         }
 
         if ( ! this.preferences.containsKey(PREF_BOLD_FONTS) ) {
-            if ( isMac() ) {
-                this.preferences.setProperty(PREF_BOLD_FONTS, "false");
-            } else {
+//            if ( isMac() ) {
+//                this.preferences.setProperty(PREF_BOLD_FONTS, "false");
+//            } else {
                 this.preferences.setProperty(PREF_BOLD_FONTS, "true");
-            }
+//            }
             this.unsaved_changes = true;
         }
 
@@ -1139,6 +1248,11 @@ public class XHSIPreferences {
             this.unsaved_changes = true;
         }
 
+        if ( ! this.preferences.containsKey(PREF_ND_SHOW_CLOCK) ) {
+            this.preferences.setProperty(PREF_ND_SHOW_CLOCK, "true");
+            this.unsaved_changes = true;
+        }
+
 
         // PFD
 
@@ -1174,6 +1288,26 @@ public class XHSIPreferences {
 
         if ( ! this.preferences.containsKey(PREF_PFD_ADI_CENTERED) ) {
             this.preferences.setProperty(PREF_PFD_ADI_CENTERED, "false");
+            this.unsaved_changes = true;
+        }
+
+        if ( ! this.preferences.containsKey(PREF_PFD_DRAW_TWINSPEEDS) ) {
+            this.preferences.setProperty(PREF_PFD_DRAW_TWINSPEEDS, "false");
+            this.unsaved_changes = true;
+        }
+
+        if ( ! this.preferences.containsKey(PREF_PFD_DRAW_TURNRATE) ) {
+            this.preferences.setProperty(PREF_PFD_DRAW_TURNRATE, "false");
+            this.unsaved_changes = true;
+        }
+
+        if ( ! this.preferences.containsKey(PREF_PFD_DRAW_GMETER) ) {
+            this.preferences.setProperty(PREF_PFD_DRAW_GMETER, "false");
+            this.unsaved_changes = true;
+        }
+
+        if ( ! this.preferences.containsKey(PREF_PFD_DRAW_YOKE_INPUT) ) {
+            this.preferences.setProperty(PREF_PFD_DRAW_YOKE_INPUT, YOKE_INPUT_AUTO);
             this.unsaved_changes = true;
         }
 
@@ -1219,6 +1353,19 @@ public class XHSIPreferences {
 
         if ( ! this.preferences.containsKey(PREF_ARPT_CHART_NAV_DEST) ) {
             this.preferences.setProperty(PREF_ARPT_CHART_NAV_DEST, "true");
+            this.unsaved_changes = true;
+        }
+
+
+        // CDU
+
+        if ( ! this.preferences.containsKey(PREF_CDU_DISPLAY_ONLY) ) {
+            this.preferences.setProperty(PREF_CDU_DISPLAY_ONLY, "false");
+            this.unsaved_changes = true;
+        }
+
+        if ( ! this.preferences.containsKey(PREF_CDU_SOURCE) ) {
+            this.preferences.setProperty(PREF_CDU_SOURCE, CDU_SOURCE_SWITCHABLE);
             this.unsaved_changes = true;
         }
 

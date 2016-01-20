@@ -1,8 +1,6 @@
 /**
  * Display.java
  *
- * Commander dialogue
- *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License
  * as published by the Free Software Foundation; either version 2
@@ -30,6 +28,7 @@ import java.awt.Color;
 import java.awt.Font;
 import java.awt.Dimension;
 import java.awt.Component;
+import java.awt.geom.Rectangle2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.ComponentEvent;
@@ -186,10 +185,13 @@ public class Display implements MouseListener {
             final boolean res = entry.mouseEvent(event, right);
             if (res) {
                 entry.click(event, right, false);
+/* TODO
                 if (entry.canRepeat()) {
-                    repeatTimer = new Timer(100,  // execute every 100 msec
+//System.err.println("+Repeat+");
+                    repeatTimer = new Timer(10,  // execute every 100 msec
                         new ActionListener() {
                             public void actionPerformed(ActionEvent e) {
+//System.err.println("--rpt--");
                                 entry.click(event, right, true);
                             }
                         }
@@ -198,11 +200,13 @@ public class Display implements MouseListener {
                     repeatTimer.start();
                 }
                 return;
+*/
             }
         }
     }
 
     public void mouseReleased(MouseEvent event) {
+//System.err.println("-Repeat-");
         repeatTimer.stop();
         for (final Entry entry : entries) {
             entry.clickReleased(event);
@@ -265,14 +269,7 @@ public class Display implements MouseListener {
         }
 
         /**
-         * getValue
-         */
-        String getValue() {
-            return getText();
-        }
-
-        /**
-         * This is the number of button slots the component will take in the dialog
+         * This is the number of button slots the component will take in the frame
          */
         int slots() {
             return 1;
@@ -308,21 +305,23 @@ public class Display implements MouseListener {
             return mainComponent;
         }
 
-
         /**
          * scaleFont
          */
-        void scaleFont(JComponent comp) {
-            scaleFont(comp, 1);
+        boolean scaleFont(JComponent comp) {
+            return scaleFont(comp, 1);
         }
 
         /**
          * scaleFont
          */
-        void scaleFont(JComponent comp, float extra) {
+        boolean scaleFont(JComponent comp, float extra) {
             Font font;
             if (savedFontScale != disp.fontScale && (font = comp.getFont()) != null) {
                 comp.setFont(font.deriveFont(font.getStyle(), (float)(savedFontSize * disp.fontScale)));
+                return true;
+            } else {
+                return false;
             }
         }
 
@@ -339,7 +338,9 @@ public class Display implements MouseListener {
          */
         void updateEntry(Display disp) {
             if (savedFontSize > 0) {
-                scaleFont(mainComponent);
+                if (scaleFont(mainComponent)) {
+                    setMinimumSize();
+                }
             }
             update(disp);
             savedFontScale = disp.fontScale;
@@ -368,6 +369,27 @@ public class Display implements MouseListener {
          * update
          */
         void update(Display disp) {
+        }
+
+        /**
+         * setMinimumSize
+         */
+        public void setMinimumSize() {
+            String text = getMininumText();
+            if (text.length() > 0 && mainComponent != null) {
+                Font f = mainComponent.getFont();
+                int width = mainComponent.getFontMetrics(f).stringWidth(text);
+              //System.out.println("f="+f+" width=" + width);
+                mainComponent.setMinimumSize(new Dimension(width ,0));
+            }
+        }
+
+
+        /**
+         * getMininumText
+         */
+        String getMininumText() {
+            return "";
         }
 
         /**
@@ -459,7 +481,7 @@ public class Display implements MouseListener {
          * newButton
          */
         JButton newButton(String str) {
-            JButton button = new JButton(str);
+            JButton button = new JButton(escape(str));
             button.setFont(getFont());
             button.setBorder(BorderFactory.createEmptyBorder(2,2,2,2));
             button.setBorderPainted(true);
@@ -484,7 +506,26 @@ public class Display implements MouseListener {
         /**
          * update
          */
-        void update(Analysis a) {
+        //void update(Analysis a) {
+        //}
+
+        /**
+         * newButton
+         */
+        JButton newButton(String str) {
+            if (str != null) {
+                str = "          ".substring(0, s2int(str, 0));
+            }
+            JButton button = super.newButton(str);
+            button.setBorder(BorderFactory.createEmptyBorder(0,0,0,0));
+            return button;
+        }
+
+        /**
+         * getWeightx
+         */
+        double getWeightx() {
+            return 0.0; // Smallest value
         }
     }
 
@@ -502,11 +543,16 @@ public class Display implements MouseListener {
          * init
          */
         JComponent init(Display disp) {
-            String value = getValue();
+            String text = getText(); // getValue();
             jcomp = new JTextField(width);
             jcomp.setBorder(BorderFactory.createEmptyBorder());
             jcomp.setFont(getFont());
-            jcomp.setText(value);
+            if (text.startsWith("_") && text.endsWith("_")) {
+                text = text.substring(1, text.length() - 1);
+                set(text);
+                jcomp.setHorizontalAlignment(JTextField.CENTER);
+            }
+            jcomp.setText(text);
             return jcomp;
         }
 
@@ -620,7 +666,7 @@ public class Display implements MouseListener {
          * newButton
          */
         JButton newButton(String text) {
-            JButton b = new JButton(text);
+            JButton b = new JButton(escape(text));
             b.setFont(getFont());
             b.setBorder(BorderFactory.createEmptyBorder(2,2,2,2));
             b.setBorderPainted(false);
@@ -710,7 +756,6 @@ public class Display implements MouseListener {
      * IluminatedButton class. These buttons are black and have illuminated text
      * that is either green (for true) white (for false), or yellow (for armed).
      */
-
     static abstract class IluminatedButton extends AbsButton implements ComponentListener {
 
         /**
@@ -762,6 +807,13 @@ public class Display implements MouseListener {
                 xbtn.setForeground(getFalseColor());
             }
             xbtn.setText(getText());
+        }
+
+        /**
+         * getMininumText
+         */
+        String getMininumText() {
+            return "XXXX";
         }
 
         /**

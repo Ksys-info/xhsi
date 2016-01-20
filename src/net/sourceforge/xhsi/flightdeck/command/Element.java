@@ -74,7 +74,11 @@ public abstract class Element {
      * setText
      */
     final void setText(String str) {
-        text = (str == null) ? "null" : str.replace('-', '\u2013');
+        if (str == null) {
+            text = "null";
+        } else {
+            text = escape(str);
+        }
     }
 
     /**
@@ -250,6 +254,31 @@ public abstract class Element {
      * update
      */
     abstract void update(Analysis a);
+
+
+    /**
+     * escape
+     */
+    public static  String escape(String str) {
+        if (str != null) {
+            str = str.replace("\\s", " ");
+            str = str.replace("\\^", "\u02c4"); //  Up arrow
+            str = str.replace("\\v", "\u02c5"); //  Down arrow
+            str = str.replace('-', '\u2013');
+        }
+        return str;
+    }
+
+    /**
+     * s2int
+     */
+    public static int s2int(String str, int dflt) {
+        try {
+            return Integer.parseInt(str);
+        } catch (Exception ex) {
+        }
+        return dflt;
+    }
 
     /**
      * s2float

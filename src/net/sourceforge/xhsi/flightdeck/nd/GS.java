@@ -199,11 +199,9 @@ public class GS extends NDSubcomponent {
         //NavigationRadio navradio;
 
         if (source == Avionics.HSI_SOURCE_GPS) {
-            gs_active = this.avionics.gps_gs_active() || this.avionics.ap_gs_on();
+            gs_active = this.avionics.gps_gs_active();
+            // what was I thinking? gs_active = this.avionics.ap_vnav_on();
             gs_value = this.avionics.gps_vdef_dot();
-            if (!gs_active && this.avionics.ap_gs_arm()) {
-                 gs_active = gs_value != 0;
-            }
         } else if (source == Avionics.HSI_SOURCE_NAV1) {
             gs_active = this.avionics.nav1_gs_active();
             gs_value = this.avionics.nav1_vdef_dot();
@@ -232,15 +230,29 @@ public class GS extends NDSubcomponent {
 
         int diamond_x[] = { cdi_x-diamond_w, cdi_x, cdi_x+diamond_w, cdi_x };
         int diamond_y[] = { cdi_y+cdi_pixels, cdi_y+cdi_pixels+diamond_h, cdi_y+cdi_pixels, cdi_y+cdi_pixels-diamond_h };
+
         if (gs_active) {
-            gImg.setColor(nd_gc.nav_needle_color);
-            if (Math.abs(gs_value) < 2.49f && this.avionics.ap_gs_on()) {
-                gImg.drawPolygon(diamond_x, diamond_y, 4);
+            Color c = nd_gc.nav_needle_color;
+            boolean fill = false;
+            if (Math.abs(gs_value) < 2.49f) {
+                fill = true;
+                if (avionics.ap_gs_on()) {
+                    // Color is good  ;
+                } else if (avionics.ap_gs_arm()) {
+                    c = new Color(0xFFAA80); // Bright Amber   ;
+                } else {
+                    c = Color.WHITE;
+                    fill = (System.currentTimeMillis() % 500) > 250;
+                }
+            }
+            gImg.setColor(c);
+            if (fill) {
                 gImg.fillPolygon(diamond_x, diamond_y, 4);
             } else {
                 gImg.drawPolygon(diamond_x, diamond_y, 4);
             }
         }
+
         gImg.setColor(nd_gc.deviation_scale_color);
         gImg.drawLine(cdi_x-bar_l, cdi_y, cdi_x+bar_l, cdi_y);
         gImg.drawOval(cdi_x-dot_r, cdi_y-dot_dist-dot_r, 2*dot_r, 2*dot_r);

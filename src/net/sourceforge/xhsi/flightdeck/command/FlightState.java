@@ -39,7 +39,7 @@ public class FlightState  {
     float lastDistance = 0;
 
     /**
-     * Turue if distance to target is reducing
+     * True if distance to target is reducing
      */
     boolean makingProgress = true;
 }

@@ -22,7 +22,39 @@
 */
 package net.sourceforge.xhsi.model;
 
+import net.sourceforge.xhsi.model.xplane.XPlaneSimDataRepository;
+
 public interface Aircraft {
+	
+    public enum ValveStatus { VALVE_OPEN, VALVE_CLOSED, VALVE_OPEN_FAILED, VALVE_CLOSED_FAILED, JAMMED };
+    public enum SpoilerStatus { RETRACTED, EXTENDED, FAILED, JAMMED };
+    public enum HydPumpStatus { OFF, ON, FAILED };
+    public enum PumpStatus { OFF, ON, LOW_PRESSURE, FAILED }; 
+    public enum HydPTUStatus { OFF, STANDBY, LEFT, RIGHT };
+    public enum ElecBus { NONE, BUS_1, BUS_2, BOTH };
+    
+    // Bleed valve circuits
+    public final static int BLEED_VALVE_CROSS = 0;
+    public final static int BLEED_VALVE_APU = 1;
+    public final static int BLEED_VALVE_ENG1 = 2;
+    public final static int BLEED_VALVE_ENG2 = 3;
+    public final static int BLEED_VALVE_ENG1_HP = 4;
+    public final static int BLEED_VALVE_ENG2_HP = 5;
+    public final static int BLEED_VALVE_PACK1 = 6;
+    public final static int BLEED_VALVE_PACK2 = 7;
+    // Air valve circuits
+    public final static int AIR_VALVE_RAM_AIR = 0;
+    public final static int AIR_VALVE_HOT_AIR = 1;    
+    
+    /**
+     * @return int - xhsi plugin version
+     */
+    public int plugin_version();
+    
+    /**
+     * @return String - aircraft_registration
+     */
+    public String aircraft_registration();
 
     /**
      * @return boolean - battery power is on
@@ -53,6 +85,11 @@ public interface Aircraft {
      * @return float - AGL in meters
      */
     public float agl_m();
+
+    /**
+     * @return float - turn rate
+     */
+    public float turn_rate();
 
     /**
      * @return float - turn speed in degrees per second
@@ -100,6 +137,11 @@ public interface Aircraft {
     public float bank();
 
     /**
+     * @return float - g load factor - 1.0 is standard earth attraction 
+     */
+    public float g_load();
+
+    /**
      * @return float - Yoke pitch ratio (-1.0f to +1.0f)
      */
 
@@ -109,6 +151,18 @@ public interface Aircraft {
      * @return float - Yoke roll ratio (-1.0f to +1.0f)
      */
     public float yoke_roll();
+
+    /**
+     * @return float - Rudder heading ratio (-1.0f to +1.0f)
+     */
+    public float rudder_hdg();
+
+    /**
+     * @return float - Left and Right Pedal deflection (0.0f to +1.0f)
+     */
+    public float brk_pedal_left();
+    public float brk_pedal_right();
+
     
     /**
      * Returns the magnetic track of the aircraft in degrees. If ground_speed
@@ -170,11 +224,13 @@ public interface Aircraft {
      * @return int - qnh setting for pilot or copilot
      */
     public int qnh();
+    public int qnh(boolean pilot);
 
     /**
      * @return int - qnh setting for pilot or copilot
      */
     public float altimeter_in_hg();
+    public float altimeter_in_hg(boolean pilot);
 
     /**
      * @return float - ASI trend kts/s
@@ -196,6 +252,11 @@ public interface Aircraft {
      */
     public float tat();
 
+    /**
+     * @return float - temperature at sealevel
+     */
+    public float isa();
+    
     /**
      * @return float - mach number
      */
@@ -326,7 +387,16 @@ public interface Aircraft {
      */
     public float get_gear(int gear);
 
-
+    /**
+     * @return int - number of gear doors that are closed when gear is down
+     */
+    public int num_gear_doors();
+    
+    /**
+     * @return float - position of a gear door in % - 0 = closed, 100% = fully opened
+     */
+    public float get_gear_door(int gear);
+    
     /**
      * @return boolean - all gears down and locked?
      */
@@ -374,6 +444,61 @@ public interface Aircraft {
      */
     public float get_yaw_trim();
 
+    /**
+     * @return float - left elevator position
+     */
+    public float get_left_elev_pos();
+    
+    /**
+     * @return float - right elevator position
+     */
+    public float get_right_elev_pos();
+    
+    /**
+     * @return float - left aileron position
+     */
+    public float get_left_aileron_pos();
+    
+    /**
+     * @return float - right aileron position
+     */
+    public float get_right_aileron_pos();    
+    
+    /**
+     * @return float - rudder elevator position
+     */
+    public float get_rudder_pos();
+
+    /**
+     * @return float - aileron max angle up
+     */
+    public float get_aileron_max_up();
+
+    /**
+     * @return float - aileron max angle down
+     */
+    public float get_aileron_max_down();
+    
+    /**
+     * @return float - elevator max angle up
+     */
+    public float get_elev_max_up();
+
+    /**
+     * @return float - elevator max angle down
+     */
+    public float get_elev_max_down();
+    
+    /**
+     * @return float - rudder max angle left and right
+     */
+    public float get_rudder_max_lr();
+
+    /**
+     * @return float - slats position
+     */
+    public float get_slat_position();
+
 
     /**
      * @return float - flaps position
@@ -410,12 +535,47 @@ public interface Aircraft {
      */
     public boolean speed_brake_armed();
 
+    /**
+     * @return int - number of spoilers
+     */
+    public int num_spoilers();
+    
+    /**
+     * @return float - spoiler deflection ration
+     */
+    public float get_spoiler_pos(int pos);
+    
+    /**
+     * @return float - left wing spoiler status
+     */    
+    public SpoilerStatus get_spoiler_status_left(int pos);    
 
+    /**
+     * @return float - right wing spoiler status
+     */    
+    public SpoilerStatus get_spoiler_status_right(int pos);    
+   
     /**
      * @return float - Parking Brake
      */
     public float get_parking_brake();
 
+    
+    /**
+     * @return int - signs : 0=off, 1=auto, 2=on 
+     */
+    public int seat_belt_sign(); 
+    public int no_smoking_sign();
+    
+    /**
+     * @return boolean - Lights 
+     */
+    public boolean landing_lights_on();
+    public boolean landing_taxi_lights_on();
+    public boolean beacon_on();
+    public boolean nav_lights_on();
+    public boolean strobe_lights_on();
+    
 
     /**
      * @return boolean - Stall warning
@@ -514,6 +674,18 @@ public interface Aircraft {
 
 
     /**
+     * @return float - Vmca: min control speed when airborne
+     */
+    public float get_Vmca();
+
+
+    /**
+     * @return float - Vyse: best rate of climb speed with a single operating engine in a light, twin-engine aircraft
+     */
+    public float get_Vyse();
+
+
+    /**
      * @return int - number of engines
      */
     public int num_engines();
@@ -547,6 +719,10 @@ public interface Aircraft {
      */
     public boolean fuel_press_alert(int eng);
 
+    /**
+     * @return float - Fuel used (kg) per engine since engine startup
+     */
+    public float fuel_used(int eng);
 
     /**
      * @return float - Fuel quantity (kg) per tank
@@ -565,10 +741,25 @@ public interface Aircraft {
 
     public float get_tank_capacity(int tank);
 
+    /**
+     * @return PumpStatus - Tank pump on, off, low pressure or failed
+     */
+    public PumpStatus get_tank_pump(int tank);
+
+    /**
+     * @return ValveStatus - Fuel XFer Valve
+     */
+    public ValveStatus get_tank_xfer_valve();
+
+
     public float fuel_multiplier();
     
 //    public void set_fuel_capacity(float capacity);
-
+    
+    /**
+     * @return float - Gross Weight (kg)
+     */
+    public float gross_weight();
 
     /**
      * @return float - Engine N1 %
@@ -599,7 +790,11 @@ public interface Aircraft {
      */
     public float get_EGT_value(int engine);
 
-
+    /**
+     * @return float - Engine Max EGT value
+     */
+    public float get_EGT_max();
+    
     /**
      * @return float - Engine N2 %
      */
@@ -630,9 +825,29 @@ public interface Aircraft {
     public float get_oil_press_ratio(int engine);
 
     /**
+     * @return float - Oil Pressure in PSI
+     */
+    public float get_oil_press_psi(int engine);
+
+    /**
+     * @return float - Oil MAX Pressure in PSI
+     */
+    public float get_oil_press_max();
+
+    /**
      * @return float - Oil T ratio
      */
     public float get_oil_temp_ratio(int engine);
+
+    /**
+     * @return float - Oil Temp in C°
+     */
+    public float get_oil_temp_c(int engine);
+
+    /**
+     * @return float - Oil MAX Temp in C°
+     */
+    public float get_oil_temp_max();
 
     /**
      * @return float - Oil Q ratio
@@ -654,7 +869,17 @@ public interface Aircraft {
      */
     public float get_hyd_quant(int circuit);
 
+    /**
+     * @return HydPumpStatus - Hydraulics main pumps (OFF, ON, FAILED);
+     */
+    public HydPumpStatus get_hyd_pump(int circuit);
 
+    /**
+     * @return HydPTUStatus - Hydraulics PTU (OFF, STANDBY, LEFT, RIGHT);
+     */
+    public HydPTUStatus get_hyd_ptu();
+
+    
     /**
      * @return float - Maximum _available_ engine TRQ
      */
@@ -729,6 +954,20 @@ public interface Aircraft {
      */
     public float get_EPR(int engine);
 
+    /**
+     * @return float - Engine EPR MAX
+     */
+    public float get_EPR_max();
+
+    /**
+     * @return float - Engine Throttle ratio
+     */
+    public float get_throttle(int engine);
+
+    /**
+     * @return boolean - Fire extinguisher on
+     */
+    public boolean fire_extinguisher(int engine);
 
     /**
      * @return float - Minimum runway length
@@ -736,6 +975,7 @@ public interface Aircraft {
     public float get_min_rwy_length();
 
 
+    // TODO : Check if boolean is appropriate 
     /**
      * @return boolean - Runway length in meters
      */
@@ -753,5 +993,130 @@ public interface Aircraft {
      */
     public void set_nearest_arpt(String nrst_arpt);
 
+    /**
+     * @return boolean - Aircraft has Auxiliary Power Unit (APU)
+     */
+    public boolean has_apu();
+  
+    /**
+     * @return Float - Auxiliary Power Unit (APU) N1
+     */
+    public float apu_n1();
+    
+    /**
+     * @return Float - Auxiliary Power Unit (APU) EGT
+     */
+    public float apu_egt();
+    
+    /**
+     * @return Float - Auxiliary Power Unit (APU) EGT Warning limit
+     */
+    public float apu_egt_limit();
+    
+    /**
+     * @return Float - Auxiliary Power Unit (APU) Generator output current (Amp)
+     */
+    public float apu_gen_amp();
+    
+    /**
+     * @return boolean - Auxiliary Power Unit (APU) - True if APU is running
+     */   
+    public boolean apu_running();
 
+    /**
+     * @return boolean - Auxiliary Power Unit (APU) - True if APU generator is available
+     */   
+    public boolean apu_gen_on();
+    
+    /**
+     * @return int - Auxiliary Power Unit (APU) starter position (0, 1 or 2)
+     */  
+    public int apu_starter();
+
+    /**
+     * @return boolean - Emergency Ram Air Generator On 
+     */  
+    public boolean ram_air_gen_on();
+
+    /**
+     * @return boolean - Ground Power Unit Generator On 
+     */  
+    public boolean gpu_gen_on();
+    
+    /**
+     * @return float - Ground Power Unit Generator Amps 
+     */  
+    public float gpu_gen_amps();
+
+    /**
+     * @return int - Number of batteries 
+     */  
+    public int num_batteries();
+    
+    /**
+     * @return int - Number of electric buses 
+     */  
+    public int num_buses();
+
+    /**
+     * @return int - Number of generators (may differ from number of engines) 
+     */  
+    public int num_generators();
+
+    /**
+     * @return int - Number of inverters 
+     */  
+    public int num_inverters();    
+    
+    /**
+     * @return boolean - AC bus tie 
+     */  
+    public boolean ac_bus_tie();  
+    
+    /**
+     * @return ElecBus - APU AC bus connection 
+     */  
+    public ElecBus apu_on_bus();
+    
+    /**
+     * @return ElecBus - GPU AC bus connection
+     */  
+    public ElecBus gpu_on_bus();
+    
+    /**
+     * @return ElecBus - AC Essential bus connection (AC1 or AC2) 
+     */  
+    public ElecBus ac_ess_on_bus();
+        
+    /**
+     * @return boolean - Engine Generator on bus (nb gen. may differ from number of engines) 
+     */  
+    public boolean eng_gen_on_bus(int eng);  
+        
+    
+    /**
+     * @return boolean - Aircraft has Bleed Air Circuits (ENG & APU)
+     */
+    public boolean has_bleed_air();
+
+    /**
+     * @return ValveStatus - Aircraft has Bleed Air Circuits (ENG & APU)
+     */
+    public ValveStatus bleed_valve(int circuit);
+    
+    /**
+     * @return Float - Cabin altitude in feet
+     */
+    public float cabin_altitude();
+    
+    /**
+     * @return Float - Cabin delta pressure (psi ratio)
+     */
+    public float cabin_delta_p();
+
+    /**
+     * @return Float - Cabin pressure vertical speed (feet / minute)
+     */
+    public float cabin_vs();
+    
 }

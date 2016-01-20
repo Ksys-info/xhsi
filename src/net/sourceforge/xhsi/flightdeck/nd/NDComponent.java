@@ -1,27 +1,27 @@
 /**
 * NDComponent.java
-* 
+*
 * The root awt component. NDComponent creates and manages painting all
 * elements of the HSI. NDComponent also creates and updates NDGraphicsConfig
 * which is used by all HSI elements to determine positions and sizes.
-* 
+*
 * This component is notified when new data packets from the flightsimulator
 * have been received and performs a repaint. This component is also triggered
 * by UIHeartbeat to detect situations without reception.
-* 
+*
 * Copyright (C) 2007  Georg Gruetter (gruetter@gmail.com)
 * Copyright (C) 2009  Marc Rogiers (marrog.123@gmail.com)
-* 
+*
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2 
+* as published by the Free Software Foundation; either version 2
 * of the License, or (at your option) any later version.
 *
 * This library is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU Lesser General Public
 * License along with this library; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -35,6 +35,11 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.awt.event.MouseWheelEvent;
+import java.awt.event.MouseWheelListener;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 import javax.swing.JFrame;
@@ -52,7 +57,7 @@ import net.sourceforge.xhsi.model.Observer;
 //import net.sourceforge.xhsi.flightdeck.GraphicsConfig;
 
 
-public class NDComponent extends Component implements Observer, PreferencesObserver {
+public class NDComponent extends Component implements Observer, PreferencesObserver, MouseListener, MouseWheelListener {
 
     private static final long serialVersionUID = 1L;
     public static boolean COLLECT_PROFILING_INFORMATION = false;
@@ -73,18 +78,18 @@ public class NDComponent extends Component implements Observer, PreferencesObser
 
     Aircraft aircraft;
     Avionics avionics;
-
+    JXMap jxmap;
 
     public NDComponent(ModelFactory model_factory, int du) {
-
-        this.nd_gc = new NDGraphicsConfig(this, du);
         this.model_factory = model_factory;
-        this.aircraft = this.model_factory.get_aircraft_instance();
-        this.avionics = this.aircraft.get_avionics();
-
-        nd_gc.reconfig = true;
-
+        this.aircraft      = model_factory.get_aircraft_instance();
+        this.avionics      = aircraft.get_avionics();
+        this.nd_gc         = new NDGraphicsConfig(this, du);
+        this.jxmap         = new JXMap(model_factory, nd_gc);
+        nd_gc.reconfig     = true;
         addComponentListener(nd_gc);
+        addMouseListener(this);
+        addMouseWheelListener(this);
         subcomponents.add(new MovingMap(model_factory, nd_gc, this));
         subcomponents.add(new CDI(model_factory, nd_gc, this));
         subcomponents.add(new AltitudeRangeArc(model_factory, nd_gc, this));
@@ -103,13 +108,41 @@ public class NDComponent extends Component implements Observer, PreferencesObser
         subcomponents.add(new RadioLabel(model_factory, nd_gc, this));
         subcomponents.add(new RefSourceLabel(model_factory, nd_gc, this));
         subcomponents.add(new APHeadingReadout(model_factory, nd_gc, this));
+        subcomponents.add(new ClockChrono(model_factory, nd_gc, this));
         subcomponents.add(new NDFail(model_factory, nd_gc, this));
         subcomponents.add(new NDInstrumentFrame(model_factory, nd_gc));
-
         this.repaint();
-
     }
 
+
+    public void mousePressed(final MouseEvent event) {
+        boolean rightButton = event.getButton() == 3 | event.isControlDown() | event.isMetaDown() | event.isAltDown();
+        if (rightButton) {
+             JXMap.nextMode();
+        }
+    }
+
+    public void mouseReleased(MouseEvent event) {
+    }
+
+    public void mouseClicked(MouseEvent event) {
+    }
+
+    public void mouseEntered(MouseEvent event) {
+    }
+
+    public void mouseExited(MouseEvent event) {
+    }
+
+    public void mouseWheelMoved(MouseWheelEvent event) {
+        XHSISettings settings = XHSISettings.get_instance();
+        int notches = event.getWheelRotation();
+        if (notches < 0) {
+            settings.mapZoomIn();
+        } else if (notches > 0) {
+            settings.mapZoomOut();
+        }
+    }
 
     public Dimension getPreferredSize() {
         return new Dimension(NDGraphicsConfig.INITIAL_PANEL_SIZE + 2*NDGraphicsConfig.INITIAL_BORDER_SIZE, NDGraphicsConfig.INITIAL_PANEL_SIZE + 2*NDGraphicsConfig.INITIAL_BORDER_SIZE);
@@ -117,14 +150,6 @@ public class NDComponent extends Component implements Observer, PreferencesObser
 
 
     public void paint(Graphics g) {
-
-        drawAll(g);
-
-    }
-
-
-    public void drawAll(Graphics g) {
-
         g2 = (Graphics2D)g;
         g2.setRenderingHints(nd_gc.rendering_hints);
         //g2.setStroke(new BasicStroke(2.0f));
@@ -149,7 +174,12 @@ public class NDComponent extends Component implements Observer, PreferencesObser
 //AlphaComposite ac = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha);
 //g2.setComposite(ac);
 
+
         g2.clearRect(0, 0, nd_gc.frame_size.width, nd_gc.frame_size.height);
+
+        if (jxmap != null) {
+             jxmap.paint2D(g2);
+        }
 
         long time = 0;
         long paint_time = 0;
@@ -234,6 +264,6 @@ public class NDComponent extends Component implements Observer, PreferencesObser
         componentResized();
         this.nd_gc.reconfig = true;
         repaint();
-        
+
     }
 }

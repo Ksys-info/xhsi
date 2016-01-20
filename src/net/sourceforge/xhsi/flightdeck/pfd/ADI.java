@@ -39,6 +39,7 @@ import java.util.logging.Logger;
 
 //import net.sourceforge.xhsi.XHSISettings;
 
+import net.sourceforge.xhsi.XHSIPreferences.DrawYokeInputMode;
 //import net.sourceforge.xhsi.model.Avionics;
 import net.sourceforge.xhsi.model.ModelFactory;
 //import net.sourceforge.xhsi.model.NavigationRadio;
@@ -64,6 +65,10 @@ public class ADI extends PFDSubcomponent {
         if ( pfd_gc.boeing_style && pfd_gc.powered ) {
             drawADI(g2);
             drawMarker(g2);
+            if ( this.preferences.get_draw_pfd_turnrate() ) {
+                drawTurnRate(g2);
+                if ( ! this.aircraft.on_ground() ) drawBankForStdRate(g2);
+            }
         }
     }
 
@@ -403,7 +408,7 @@ public class ADI extends PFDSubcomponent {
                 cy + delta_h,
                 cy + delta_h
             };
-            g2.setColor(pfd_gc.background_color);
+            g2.setColor(aircraftColor());
             g2.fillPolygon(left_delta_x, delta_y, 3);
             g2.fillPolygon(right_delta_x, delta_y, 3);
             g2.setColor(pfd_gc.markings_color);
@@ -411,7 +416,7 @@ public class ADI extends PFDSubcomponent {
             g2.drawPolygon(right_delta_x, delta_y, 3);
 
             // Horizon Reference Bars
-            g2.setColor(pfd_gc.background_color);
+            g2.setColor(aircraftColor());
             g2.fillRect(cx - left * 15 / 16, cy - up / 36, left * 4 / 16, down / 18);
             g2.fillRect(cx + right * 11 / 16, cy - up / 36, left * 4 / 16, down / 18);
             g2.setColor(pfd_gc.markings_color);
@@ -460,6 +465,72 @@ public class ADI extends PFDSubcomponent {
 //        g2.setColor(pfd_gc.instrument_background_color);
 //        g2.fillRect(pfd_gc.border_left + ( pfd_gc.frame_size.width - pfd_gc.border_left - pfd_gc.border_right ) / 32, pfd_gc.border_top + ( pfd_gc.frame_size.height - pfd_gc.border_top - pfd_gc.border_bottom ) / 8, ( pfd_gc.frame_size.width - pfd_gc.border_left - pfd_gc.border_right ) / 8, ( pfd_gc.frame_size.height - pfd_gc.border_top - pfd_gc.border_bottom ) / 8 * 6);
 
+        DrawYokeInputMode display_yoke_pref = preferences.get_pfd_draw_yoke_input();
+        // Stick orders : on ground / bellow 30 ft AGL
+        int ra = Math.round(this.aircraft.agl_m() * 3.28084f); // Radio altitude
+        boolean display_stick_always = (display_yoke_pref == DrawYokeInputMode.ALWAYS) || (display_yoke_pref == DrawYokeInputMode.ALWAYS_RUDDER);
+        boolean display_stick_orders = ((this.aircraft.on_ground()) || (ra < 30)) && (display_yoke_pref != DrawYokeInputMode.NONE);
+        // public enum DrawYokeInputMode { NONE, AUTO, AUTO_RUDDER, ALWAYS, ALWAYS_RUDDER };
+        boolean display_rudder = (display_yoke_pref == DrawYokeInputMode.AUTO_RUDDER ) || (display_yoke_pref == DrawYokeInputMode.ALWAYS_RUDDER );
+        if  (display_stick_orders || display_stick_always)  {
+
+            g2.setColor(pfd_gc.dim_markings_color);
+            int st_width = left / 8;
+            int st_left = cx - left*14/20;
+            int st_right = cx + right*14/20;
+            int st_up = cy - up/2;
+            int st_down = cy + down/2;
+            int st_x = cx + Math.round(this.aircraft.yoke_roll() * left*14/20);
+            int st_y = cy - Math.round(this.aircraft.yoke_pitch() * up/2);
+            int st_d = left/60;
+            int st_w = left/10;
+            int rd_x = cx + Math.round(this.aircraft.rudder_hdg() * left*14/20);
+            int rd_y = cy + up/2 - st_d/2;
+            int brk_l_y = Math.round(this.aircraft.brk_pedal_left() * up/2);
+            int brk_r_y = Math.round(this.aircraft.brk_pedal_right() * up/2);
+
+            // Stick box
+            // top left
+            g2.drawLine(st_left, st_up, st_left + st_width, st_up);
+            g2.drawLine(st_left, st_up, st_left, st_up + st_width);
+            // top right
+            g2.drawLine(st_right, st_up, st_right - st_width, st_up);
+            g2.drawLine(st_right, st_up, st_right, st_up + st_width);
+            // bottom left
+            g2.drawLine(st_left, st_down, st_left + st_width, st_down);
+            g2.drawLine(st_left, st_down, st_left, st_down - st_width);
+            // bottom right
+            g2.drawLine(st_right, st_down, st_right - st_width, st_down);
+            g2.drawLine(st_right, st_down, st_right, st_down - st_width);
+
+            // Stick marker
+            // top left
+            g2.drawLine(st_x - st_d - st_w , st_y - st_d, st_x - st_d, st_y - st_d);
+            g2.drawLine(st_x - st_d, st_y - st_d, st_x - st_d, st_y - st_d - st_w);
+            // top right
+            g2.drawLine(st_x + st_d + st_w , st_y - st_d, st_x + st_d, st_y - st_d);
+            g2.drawLine(st_x + st_d, st_y - st_d, st_x + st_d, st_y - st_d - st_w);
+            // bottom left
+            g2.drawLine(st_x - st_d - st_w , st_y + st_d, st_x - st_d, st_y + st_d);
+            g2.drawLine(st_x - st_d, st_y + st_d, st_x - st_d, st_y + st_d + st_w);
+            // bottom right
+            g2.drawLine(st_x + st_d + st_w , st_y + st_d, st_x + st_d, st_y + st_d);
+            g2.drawLine(st_x + st_d, st_y + st_d, st_x + st_d, st_y + st_d + st_w);
+
+            if (display_rudder) {
+                // Rudder marker
+                g2.drawRect(rd_x-st_d*2, rd_y, st_d*4, st_d*2);
+                g2.drawLine(cx, st_down, cx, st_down+st_d);
+
+                // Brake pedals
+                g2.fillRect(st_left-st_d*2, cy + up/2 - brk_l_y, st_d*2, brk_l_y);
+                g2.fillRect(st_right      , cy + up/2 - brk_r_y, st_d*2, brk_r_y);
+            }
+
+
+        }
+
+
     }
 
 
@@ -468,6 +539,14 @@ public class ADI extends PFDSubcomponent {
 //        return p_w;
 //    }
 
+
+    /**
+     * @return The color of the aircrft wings or V-bar. This is either black, or a yellow color.
+     *         The yellow color appears when the autopilot is on.
+     */
+    private Color aircraftColor() {
+        return (avionics.autopilot_mode() > 1) ? new Color(0xFFEE22) /*Color.YELLOW.darker()*/ /*new Color(0xE6E604)*/ : pfd_gc.background_color;
+    }
 
     private void drawPitchmark(Graphics2D g2, float pitch, int pitchmark, int p_y, int p_90, int cx, int cy, int size) {
 
@@ -506,7 +585,7 @@ public class ADI extends PFDSubcomponent {
             int m_y;
             if ( this.preferences.get_draw_fullwidth_horizon() ) {
                 m_x = pfd_gc.adi_cx - pfd_gc.adi_size_left;
-                m_y = m_y = pfd_gc.adi_cy - pfd_gc.adi_size_up;
+                m_y = pfd_gc.adi_cy - pfd_gc.adi_size_up;
             } else {
                 m_x = pfd_gc.adi_cx + pfd_gc.adi_size_right - pfd_gc.adi_size_right*1/16 - 2*m_r;
                 m_y = pfd_gc.adi_cy - pfd_gc.adi_size_up + pfd_gc.adi_size_right*1/16;
@@ -536,6 +615,68 @@ public class ADI extends PFDSubcomponent {
             g2.drawString(mstr, m_x + m_r - pfd_gc.get_text_width(g2, pfd_gc.font_m, mstr)/2, m_y + m_r + pfd_gc.line_height_m/2 - 2);
 
         }
+
+    }
+
+
+    private void drawTurnRate(Graphics2D g2) {
+
+        int turnrate_x = pfd_gc.adi_cx;
+        int turnrate_w = pfd_gc.adi_size_left*6/7;
+        int turnrate_y = pfd_gc.adi_cy - pfd_gc.adi_size_up - pfd_gc.adi_size_up/11;
+        int turnrate_h = pfd_gc.adi_size_up/12;
+
+        float turnrate = this.aircraft.turn_rate() / 30.0f; // ratio of standard rate = 1.0f
+        turnrate = Math.min(turnrate, 2.0f); // full scale right
+        turnrate = Math.max(turnrate, -2.0f); // full scale left
+        if ( Math.abs(turnrate) == 2.0f ) {
+            g2.setColor(pfd_gc.caution_color);
+        } else {
+            g2.setColor(pfd_gc.markings_color);
+        }
+        int turnrate_d = Math.round(1000.0f * turnrate) * turnrate_w/2/2 / 1000;
+        if ( turnrate_d > 0 ) {
+            g2.fillRect(turnrate_x, turnrate_y - turnrate_h/2*3/4, turnrate_d, turnrate_h*6/8);
+        } else {
+            g2.fillRect(turnrate_x + turnrate_d, turnrate_y - turnrate_h/2*3/4, - turnrate_d, turnrate_h*6/8);
+        }
+
+        g2.setColor(pfd_gc.dim_markings_color);
+        g2.drawRect(turnrate_x - turnrate_w/2, turnrate_y - turnrate_h/2, turnrate_w, turnrate_h);
+        // vertical line at the center
+        g2.drawLine(turnrate_x, turnrate_y - turnrate_h/2, turnrate_x, turnrate_y + turnrate_h/2);
+        g2.setColor(pfd_gc.normal_color);
+        // vertical line for standard rate left at 1/3 full scale
+        g2.drawLine(turnrate_x - turnrate_w/2/2, turnrate_y - turnrate_h/2 + 1, turnrate_x - turnrate_w/2/2, turnrate_y + turnrate_h/2);
+        // vertical line for standard rate right at 1/3 full scale
+        g2.drawLine(turnrate_x + turnrate_w/2/2, turnrate_y - turnrate_h/2 + 1, turnrate_x + turnrate_w/2/2, turnrate_y + turnrate_h/2);
+
+    }
+
+
+    private void drawBankForStdRate(Graphics2D g2) {
+
+        AffineTransform original_at = g2.getTransform();
+
+        double targetbank = Math.atan( this.aircraft.true_air_speed() / 364.0 );
+
+        if ( targetbank > 0.7854 ) {
+            // > 45deg
+            g2.setColor(pfd_gc.warning_color);
+        } else if ( targetbank > 0.4363 ) {
+            // > 25deg
+            g2.setColor(pfd_gc.caution_color);
+        } else {
+            g2.setColor(pfd_gc.normal_color);
+        }
+
+        g2.rotate(targetbank, pfd_gc.adi_cx, pfd_gc.adi_cy);
+        g2.drawOval(pfd_gc.adi_cx - pfd_gc.adi_size_left/50, pfd_gc.adi_cy - pfd_gc.adi_size_up + pfd_gc.adi_size_up/16 - pfd_gc.adi_size_up/25, pfd_gc.adi_size_left/25, pfd_gc.adi_size_up/25);
+        g2.setTransform(original_at);
+
+        g2.rotate(-targetbank, pfd_gc.adi_cx, pfd_gc.adi_cy);
+        g2.drawOval(pfd_gc.adi_cx - pfd_gc.adi_size_left/50, pfd_gc.adi_cy - pfd_gc.adi_size_up + pfd_gc.adi_size_up/16 - pfd_gc.adi_size_up/25, pfd_gc.adi_size_left/25, pfd_gc.adi_size_up/25);
+        g2.setTransform(original_at);
 
     }
 

@@ -217,6 +217,7 @@ public class GraphicsConfig implements ComponentListener {
     public Color heading_labels_color;
     public Color nav_needle_color;
     public Color deviation_scale_color;
+    public Color bright_markings_color;
     public Color markings_color;
     public Color dim_markings_color;
     public Color range_arc_color;
@@ -252,6 +253,7 @@ public class GraphicsConfig implements ComponentListener {
     public Color ecam_markings_color;
     public Color ecam_action_color;
     public Color ecam_special_color;
+    public Color ecam_box_bg_color;
 
     // PFD colors - used to managed PFD lightening
     public Color pfd_armed_color;
@@ -300,10 +302,10 @@ public class GraphicsConfig implements ComponentListener {
     public int max_char_advance_zl;
     public int digit_width_zl;
 
-    public Font font_yl;
-    public int line_height_yl;
-    public int max_char_advance_yl;
-    public int digit_width_yl;
+    public Font font_xxxl;
+    public int line_height_xxxl;
+    public int max_char_advance_xxxl;
+    public int digit_width_xxxl;
 
     public Font font_xxl;
     public int line_height_xxl;
@@ -340,10 +342,48 @@ public class GraphicsConfig implements ComponentListener {
     public int max_char_advance_xxs;
     public int digit_width_xxs;
 
+    public Font font_xxxs;
+    public int line_height_xxxs;
+    public int max_char_advance_xxxs;
+    public int digit_width_xxxs;
+
     public Font font_normal;
     public int line_height_normal;
     public int max_char_advance_normal;
     public int digit_width_normal;
+
+    // Fixed font
+    String font_fixed_name = "Andale Mono";
+
+    public Font font_fixed_zl;
+    public int line_height_fixed_zl;
+    public int max_char_advance_fixed_zl;
+    public int digit_width_fixed_zl;
+
+    public Font font_fixed_xxxl;
+    public int line_height_fixed_xxxl;
+    public int max_char_advance_fixed_xxxl;
+    public int digit_width_fixed_xxxl;
+
+    public Font font_fixed_xxl;
+    public int line_height_fixed_xxl;
+    public int max_char_advance_fixed_xxl;
+    public int digit_width_fixed_xxl;
+
+    public Font font_fixed_xl;
+    public int line_height_fixed_xl;
+    public int max_char_advance_fixed_xl;
+    public int digit_width_fixed_xl;
+
+    public Font font_fixed_l;
+    public int line_height_fixed_l;
+    public int max_char_advance_fixed_l;
+    public int digit_width_fixed_l;
+
+    public Font font_fixed_m;
+    public int line_height_fixed_m;
+    public int max_char_advance_fixed_m;
+    public int digit_width_fixed_m;
 
     public Dimension component_size;
     public Dimension frame_size;
@@ -372,6 +412,7 @@ public class GraphicsConfig implements ComponentListener {
     public int display_unit;
 
     public boolean powered;
+    public int cdu_source;
     public int style;
 
 
@@ -423,7 +464,7 @@ public class GraphicsConfig implements ComponentListener {
                 this.font_medium = new Font( this.font_name, Font.BOLD, 16);
                 this.font_large = new Font( this.font_name, Font.PLAIN, 24);
                 this.font_zl = new Font( this.font_name, Font.PLAIN, Math.round(64.0f * scale));
-                this.font_yl = new Font( this.font_name, Font.PLAIN, Math.round(32.0f * scale));
+                this.font_xxxl = new Font( this.font_name, Font.PLAIN, Math.round(32.0f * scale));
                 this.font_xxl = new Font( this.font_name, Font.BOLD, Math.round(24.0f * scale));
                 this.font_xl = new Font( this.font_name, Font.BOLD, Math.round(21.0f * scale));
                 this.font_l = new Font( this.font_name, Font.BOLD, Math.round(18.0f * scale));
@@ -431,6 +472,7 @@ public class GraphicsConfig implements ComponentListener {
                 this.font_s = new Font( this.font_name, Font.BOLD, Math.round(14.0f * scale));
                 this.font_xs = new Font( this.font_name, Font.BOLD, Math.round(12.0f * scale));
                 this.font_xxs = new Font( this.font_name, Font.BOLD, Math.round(10.0f * scale));
+                this.font_xxxs = new Font( this.font_name, Font.BOLD, Math.round(8.0f * scale));
                 this.font_normal = new Font( this.font_name, Font.BOLD, Math.round(14.0f * scale));
             } else {
                 this.font_statusbar = new Font(this.font_name, Font.PLAIN, 9);
@@ -439,7 +481,7 @@ public class GraphicsConfig implements ComponentListener {
                 this.font_medium = new Font( this.font_name, Font.PLAIN, 16);
                 this.font_large = new Font( this.font_name, Font.PLAIN, 24);
                 this.font_zl = new Font( this.font_name, Font.PLAIN, Math.round(64.0f * scale));
-                this.font_yl = new Font( this.font_name, Font.PLAIN, Math.round(32.0f * scale));
+                this.font_xxxl = new Font( this.font_name, Font.PLAIN, Math.round(32.0f * scale));
                 this.font_xxl = new Font( this.font_name, Font.PLAIN, Math.round(24.0f * scale));
                 this.font_xl = new Font( this.font_name, Font.PLAIN, Math.round(21.0f * scale));
                 this.font_l = new Font( this.font_name, Font.PLAIN, Math.round(18.0f * scale));
@@ -447,6 +489,7 @@ public class GraphicsConfig implements ComponentListener {
                 this.font_s = new Font( this.font_name, Font.PLAIN, Math.round(14.0f * scale));
                 this.font_xs = new Font( this.font_name, Font.PLAIN, Math.round(12.0f * scale));
                 this.font_xxs = new Font( this.font_name, Font.PLAIN, Math.round(10.0f * scale));
+                this.font_xxxs = new Font( this.font_name, Font.PLAIN, Math.round(8.0f * scale));
                 this.font_normal = new Font( this.font_name, Font.PLAIN, Math.round(14.0f * scale));
             }
 
@@ -479,10 +522,10 @@ public class GraphicsConfig implements ComponentListener {
             this.max_char_advance_zl = fm.stringWidth("WW") - fm.stringWidth("W");
             this.digit_width_zl =  fm.stringWidth("88") - fm.stringWidth("8");
 
-            fm = g2.getFontMetrics(this.font_yl);
-            this.line_height_yl = fm.getAscent();
-            this.max_char_advance_yl = fm.stringWidth("WW") - fm.stringWidth("W");
-            this.digit_width_yl =  fm.stringWidth("88") - fm.stringWidth("8");
+            fm = g2.getFontMetrics(this.font_xxxl);
+            this.line_height_xxxl = fm.getAscent();
+            this.max_char_advance_xxxl = fm.stringWidth("WW") - fm.stringWidth("W");
+            this.digit_width_xxxl =  fm.stringWidth("88") - fm.stringWidth("8");
 
             fm = g2.getFontMetrics(this.font_xxl);
             this.line_height_xxl = fm.getAscent();
@@ -519,11 +562,54 @@ public class GraphicsConfig implements ComponentListener {
             this.max_char_advance_xxs = fm.stringWidth("WW") - fm.stringWidth("W");
             this.digit_width_xxs =  fm.stringWidth("88") - fm.stringWidth("8");
 
+            fm = g2.getFontMetrics(this.font_xxxs);
+            this.line_height_xxxs = fm.getAscent();
+            this.max_char_advance_xxxs = fm.stringWidth("WW") - fm.stringWidth("W");
+            this.digit_width_xxxs =  fm.stringWidth("88") - fm.stringWidth("8");
+
             fm = g2.getFontMetrics(this.font_normal);
             this.line_height_normal = fm.getAscent();
             this.max_char_advance_normal = fm.stringWidth("WW") - fm.stringWidth("W");
             this.digit_width_normal =  fm.stringWidth("88") - fm.stringWidth("8");
 
+            // Fixed fonts
+            this.font_fixed_zl = new Font( this.font_fixed_name, Font.PLAIN, Math.round(42.0f * scale));
+            this.font_fixed_xxxl = new Font( this.font_fixed_name, Font.PLAIN, Math.round(32.0f * scale));
+            this.font_fixed_xxl = new Font( this.font_fixed_name, Font.PLAIN, Math.round(28.0f * scale));
+            this.font_fixed_xl = new Font( this.font_fixed_name, Font.PLAIN, Math.round(24.0f * scale));
+            this.font_fixed_l = new Font( this.font_fixed_name, Font.PLAIN, Math.round(20.0f * scale));
+            this.font_fixed_m = new Font( this.font_fixed_name, Font.PLAIN, Math.round(16.0f * scale));
+
+            // Get metrics for fixed fonts
+            fm = g2.getFontMetrics(this.font_fixed_zl);
+            this.line_height_fixed_zl = fm.getAscent();
+            this.max_char_advance_fixed_zl = fm.stringWidth("WW") - fm.stringWidth("W");
+            this.digit_width_fixed_zl =  fm.stringWidth("88") - fm.stringWidth("8");
+
+            fm = g2.getFontMetrics(this.font_fixed_xxxl);
+            this.line_height_fixed_xxxl = fm.getAscent();
+            this.max_char_advance_fixed_xxxl = fm.stringWidth("WW") - fm.stringWidth("W");
+            this.digit_width_fixed_xxxl =  fm.stringWidth("88") - fm.stringWidth("8");
+
+            fm = g2.getFontMetrics(this.font_fixed_xxl);
+            this.line_height_fixed_xxl = fm.getAscent();
+            this.max_char_advance_fixed_xxl = fm.stringWidth("WW") - fm.stringWidth("W");
+            this.digit_width_fixed_xxl =  fm.stringWidth("88") - fm.stringWidth("8");
+
+            fm = g2.getFontMetrics(this.font_fixed_xl);
+            this.line_height_fixed_xl = fm.getAscent();
+            this.max_char_advance_fixed_xl = fm.stringWidth("WW") - fm.stringWidth("W");
+            this.digit_width_fixed_xl =  fm.stringWidth("88") - fm.stringWidth("8");
+
+            fm = g2.getFontMetrics(this.font_fixed_l);
+            this.line_height_fixed_l = fm.getAscent();
+            this.max_char_advance_fixed_l = fm.stringWidth("WW") - fm.stringWidth("W");
+            this.digit_width_fixed_l =  fm.stringWidth("88") - fm.stringWidth("8");
+
+            fm = g2.getFontMetrics(this.font_fixed_m);
+            this.line_height_fixed_m = fm.getAscent();
+            this.max_char_advance_fixed_m = fm.stringWidth("WW") - fm.stringWidth("W");
+            this.digit_width_fixed_m =  fm.stringWidth("88") - fm.stringWidth("8");
     }
 
 
@@ -553,21 +639,29 @@ public class GraphicsConfig implements ComponentListener {
             data_label_color = color_pastelhotpink;
             fmc_active_color = color_hotpink;
             fmc_disp_color = Color.WHITE;
-            fmc_other_color = Color.GRAY;
+            fmc_other_color = Color.LIGHT_GRAY;
             altitude_arc_color = color_yellowgreen;
             fmc_ll_active_color = color_yellowgreen.brighter();
             fmc_ll_disp_color = color_yellowgreen;
             fmc_ll_other_color = color_yellowgreen.darker();
             heading_labels_color = color_limegreen;
             nav_needle_color = color_mediumviolet;
-            deviation_scale_color = Color.LIGHT_GRAY;
-            markings_color = Color.WHITE;
 //                float hsb[] = new float[3];
 //                Color.RGBtoHSB(markings_color.getRed(), markings_color.getGreen(), markings_color.getBlue(), hsb);
 //                hsb[2] *= 0.25f;
 //                markings_color = Color.getHSBColor(hsb[0], hsb[1], hsb[2]);
-            dim_markings_color = Color.LIGHT_GRAY;
-            range_arc_color = preferences.get_dim_range_arcs() ? Color.DARK_GRAY.darker() :  Color.GRAY; // was: Color.GRAY.darker()
+
+//**NS**    markings_color = Color.WHITE;
+//**NS**    dim_markings_color = Color.LIGHT_GRAY;
+//**NS**    range_arc_color = Color.DARK_GRAY; // was: Color.GRAY
+//          deviation_scale_color = Color.LIGHT_GRAY;
+
+            deviation_scale_color = Color.WHITE;
+            bright_markings_color = Color.WHITE;
+            markings_color        = preferences.get_dim_range_arcs() ? Color.LIGHT_GRAY         :  Color.WHITE;
+            dim_markings_color    = preferences.get_dim_range_arcs() ? Color.GRAY               :  Color.LIGHT_GRAY;
+            range_arc_color       = preferences.get_dim_range_arcs() ? Color.DARK_GRAY.darker() :  Color.DARK_GRAY;
+
             dim_label_color = Color.DARK_GRAY;
             normal_color = color_lime;
             unusual_color = color_deepskyblue;
@@ -597,6 +691,7 @@ public class GraphicsConfig implements ComponentListener {
             ecam_markings_color = Color.white;
             ecam_action_color = Color.cyan;
             ecam_special_color = Color.magenta;
+            ecam_box_bg_color = new Color(0x0f1c60);
 
             // PFD colors - used to managed PFD lightening
             if ( this.settings.style == Avionics.STYLE_AIRBUS ) {
@@ -674,7 +769,7 @@ public class GraphicsConfig implements ComponentListener {
             deviation_scale_color = Color.LIGHT_GRAY;
             markings_color = Color.WHITE;
             dim_markings_color = Color.LIGHT_GRAY;
-            range_arc_color = Color.GRAY.brighter();
+            range_arc_color = Color.GRAY; // was: Color.GRAY.brighter()
             dim_label_color = Color.BLACK;
             normal_color = color_lime;
             unusual_color = color_deepskyblue;
@@ -702,6 +797,7 @@ public class GraphicsConfig implements ComponentListener {
             ecam_markings_color = Color.white;
             ecam_action_color = Color.cyan;
             ecam_special_color = Color.magenta;
+            ecam_box_bg_color = new Color(0x0f1c60);
 
             // PFD Colors - used to managed PFD lightening
             if ( this.settings.style == Avionics.STYLE_AIRBUS ) {
@@ -845,7 +941,8 @@ public class GraphicsConfig implements ComponentListener {
         instrument_outer_frame.subtract(outer_frame);
 
         // fonts
-        set_fonts(g2, this.scaling_factor);
+        float fscale = preferences.get_panel_fscale(this.display_unit);
+        set_fonts(g2, this.scaling_factor * fscale);
 
     }
 

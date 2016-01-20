@@ -1,21 +1,21 @@
 /**
 * ClipRoseArea.java
-* 
+*
 * Erase everything that falls outside the rose area
-* 
+*
 * Copyright (C) 2007  Georg Gruetter (gruetter@gmail.com)
 * Copyright (C) 2009  Marc Rogiers (marrog.123@gmail.com)
-* 
+*
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2 
+* as published by the Free Software Foundation; either version 2
 * of the License, or (at your option) any later version.
 *
 * This library is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU Lesser General Public
 * License along with this library; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -65,7 +65,9 @@ public class ClipRoseArea extends NDSubcomponent {
                 }
             } else {
                 // leave at least the top of the window uncluttered
-                g2.clearRect(0,0, nd_gc.frame_size.width, nd_gc.rose_y_offset);
+                if (JXMap.getMode() == JXMap.OFF) {
+                    g2.clearRect(0,0, nd_gc.frame_size.width, nd_gc.rose_y_offset);
+                }
             }
 
         }
