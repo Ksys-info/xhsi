@@ -139,7 +139,7 @@ public class CommanderProperties extends CommanderPropertiesSuper {
             new PropertiesPanel.Entry("warn_alt",   false,   "Warn of possible V/S errors"),
             new PropertiesPanel.Entry("low_pwr",     "35",   "Low engine power level (percentage)"),
             new PropertiesPanel.Entry("high_pwr",    "85",   "High engine power level (percentage)"),
-            new PropertiesPanel.Entry("warn_pitot", false,   "Warn if pitot heater is on"),
+            new PropertiesPanel.Entry("warn_pitot", false,   "Warn if pitot heater is off"),
             new PropertiesPanel.Entry("warn_aoa",   false,   "Enable AOA warnings"),
             new PropertiesPanel.Entry("aoa_g_p",     "2.0",  "Green positive AOA"),
             new PropertiesPanel.Entry("aoa_y_p",     "4.0",  "Yellow positive AOA"),

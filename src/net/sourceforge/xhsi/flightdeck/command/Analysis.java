@@ -504,10 +504,11 @@ public class Analysis extends SuperAnalysis {
         c.write("STALL",     "The aircraft is stalling",          aircraft.stall_warning());
         c.write("TERRAIN",   "The aircraft may hit the ground ",  aircraft.terrain_warning());
         c.write("GEAR",      "The landing gear is NOT down",      gear_warning && p.warn_bgf);
-        c.write("BREAK",     "The breaks are on",                 aircraft.get_parking_brake() > 0.01f && !gear_not_up && p.warn_bgf);
+        c.write("BREAK",     "The breaks are on",                 aircraft.get_parking_brake() > 0.01f && p.warn_bgf);
         c.write("AUTOPILOT", "The autopilot is disconnected",     p.warn_no_ap && ap_mode == 0);
         c.write("FLAPS",     "The flaps are not set for takeoff", flap_pos > FLAP_TOFF && !flying && p.warn_bgf);
         c.write("BAD-CLIMB", "Climb with gear or flaps extended", bad_climb);
+        c.write("PITOT",     "The pitot heater is off",           p.warn_pitot && aircraft.pitot_heat());
         c.write(aoa_label,    aoa_text,                           error_aoa && p.warn_aoa);
     }
 
@@ -565,10 +566,9 @@ public class Analysis extends SuperAnalysis {
         c.write("CLIMBING",   "VVI is "+vvi ,              p.warn_vs && vvi >  p.vspeed);
         c.write("DESCENDING", "VVI is "+vvi ,              p.warn_vs && vvi < -p.vspeed);
         c.write("GEAR",       "The landing gear is down",  gear_not_up && !gear_unsafe && !gear_warning && p.warn_bgf);
-        c.write("FLAPS",      "The flaps are deployed",    flap_pos > FLAP_ZERO && flap_pos < FLAP_MAX && p.warn_bgf);
+        c.write("FLAPS",      "The flaps are deployed",    flap_pos > FLAP_ZERO && flap_pos < FLAP_MAX && flying && p.warn_bgf);
         c.write("power",       pwr_low,                    pwr_low  != null);
         c.write("POWER",       pwr_high,                   pwr_high != null);
-        c.write("PITOT",      "The pitot heater is on",    p.warn_pitot && aircraft.pitot_heat());
     }
 
     // ------------------------------------------- Composer -------------------------------------------

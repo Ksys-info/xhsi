@@ -322,7 +322,7 @@ public class ILS extends PFDSubcomponent {
                     if (avionics.ap_gs_on()) {
                         // Color is good  ;
                     } else if (avionics.ap_gs_arm()) {
-                        c = new Color(0xFFAA80); // Bright Amber   ;
+                        c = Color.ORANGE;
                     } else {
                         c = Color.WHITE;
                         fill = (System.currentTimeMillis() % 500) > 250;

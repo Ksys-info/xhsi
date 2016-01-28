@@ -33,6 +33,8 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 //import java.awt.GraphicsConfiguration;
 import java.awt.Point;
+import java.awt.geom.Point2D;
+
 //import java.awt.RenderingHints;
 import java.awt.Stroke;
 //import java.awt.Transparency;
@@ -72,8 +74,6 @@ import net.sourceforge.xhsi.model.aptnavdata.AptNavXP900DatTaxiChartBuilder;
 //import net.sourceforge.xhsi.panel.GraphicsConfig;
 //import net.sourceforge.xhsi.panel.Subcomponent;
 
-
-
 public class MovingMap extends NDSubcomponent {
 
     private static final Logger logger = Logger.getLogger("net.sourceforge.xhsi");
@@ -81,6 +81,10 @@ public class MovingMap extends NDSubcomponent {
     private static final long serialVersionUID = 1L;
     private static final boolean DRAW_LAT_LON_GRID = false;
     // private BufferedImage fix_image;
+
+    public final static int VOR_MAX_RANGE  = 640;
+    public final static int NDB_MAX_RANGE  = 640;
+    public final static int ARPT_MAX_RANGE = 640;
 
     public static DecimalFormat vor_freq_formatter;
     public static DecimalFormat ndb_freq_formatter;
@@ -116,124 +120,249 @@ public class MovingMap extends NDSubcomponent {
     private static TaxiChart taxi = new TaxiChart();
 
 
-    private interface Projection {
-//        public void setScale(float ppnm);
-        public void setAcf(float acf_lat, float acf_lon);
-        public void setPoint(float lat, float lon);
-        public int getX();
-        public int getY();
-    }
+   //
+   // -------------------------------- Projection --------------------------------
+   //
 
-// If we need to go back from the Azimuthal Equidistant projection to the Cylindrical projection, we can just use this class
-//    private class CylindricalProjection implements Projection {
-//
-//        private float c_lat;
-//        private float c_lon;
-//
-//        private int map_x;
-//        private int map_y;
-//
-//
-//        public CylindricalProjection() {
-//
-//        }
-//
-////        public void setScale(float ppnm) {
-////            nmpix = ppnm;
-////        }
-//
-//        public void setAcf(float acf_lat, float acf_lon) {
-//            // interesting, but not used...
-//            c_lat = acf_lat;
-//            c_lon = acf_lon;
-//        }
-//
-//        public void setPoint(float lat, float lon) {
-//            map_x = cylindrical_lon_to_x(lon);
-//            map_y = cylindrical_lat_to_y(lat);
-//        }
-//
-//        public int getX() {
-//            return map_x;
-//        }
-//
-//        public int getY() {
-//            return map_y;
-//        }
-//
-//    }
+    private abstract class Projection {
 
-    private class AzimuthalEquidistantProjection implements Projection {
+        final protected float lat_max;
+        final protected float lat_min;
+        final protected float lon_max;
+        final protected float lon_min;
 
-//        private float nm_pix;
-        private double phi1;
-        private double sin_phi1;
-        private double cos_phi1;
-        private double lambda0;
+        protected float point_lat;
+        protected float point_lon;
+        private Point point;
 
-        private double phi;
-        private double sin_phi;
-        private double cos_phi;
-        private double lambda;
-        private double d_lambda;
-        private double sin_d_lambda;
-        private double cos_d_lambda;
-
-        // private double cos_rho;
-        // private double tan_theta;
-        private double rho;
-        private double theta;
-
-        private float x;
-        private float y;
-
-
-        public AzimuthalEquidistantProjection() {
-
-        }
-
-//        public void setScale(float ppnm) {
-//            nm_pix = ppnm;
-//        }
-
-        public void setAcf(float acf_lat, float acf_lon) {
-            phi1 = Math.toRadians(acf_lat);
-            lambda0 = Math.toRadians(acf_lon);
-            sin_phi1 = Math.sin(phi1);
-            cos_phi1 = Math.cos(phi1);
+        Projection(float lat_max, float lat_min, float lon_max, float lon_min) {
+            this.lat_max = lat_max;
+            this.lat_min = lat_min;
+            this.lon_max = lon_max;
+            this.lon_min = lon_min;
         }
 
         public void setPoint(float lat, float lon) {
-            phi = Math.toRadians(lat);
-            lambda = Math.toRadians(lon);
-            sin_phi = Math.sin(phi);
-            cos_phi = Math.cos(phi);
-            d_lambda = lambda - lambda0;
-            sin_d_lambda = Math.sin(d_lambda);
-            cos_d_lambda = Math.cos(d_lambda);
-            // cos_rho = sin_phi1 * sin_phi + cos_phi1 * cos_phi * cos_d_lambda;
-            // tan_theta = cos_phi * sin_d_lambda / ( cos_phi1 * sin_phi - sin_phi1 * cos_phi * cos_d_lambda );
-            rho = Math.acos(sin_phi1 * sin_phi + cos_phi1 * cos_phi * cos_d_lambda);
-            theta = Math.atan2(cos_phi1 * sin_phi - sin_phi1 * cos_phi * cos_d_lambda, cos_phi * sin_d_lambda);
-            x = (float)(rho * Math.sin(theta));
-            y = - (float)(rho * Math.cos(theta));
+            point_lat = lat;
+            point_lon = lon;
+            point = null;
+        }
+        public boolean pointIsVisible() {
+            return point_lat >= lat_min && point_lat <= lat_max &&
+                   point_lon >= lon_min && point_lon <= lon_max;
+        }
+
+        private Point resolve() {
+            if (point == null) {
+                point = geoToPixelCheck(point_lat, point_lon);
+            }
+            return point;
         }
 
         public int getX() {
-
-            return Math.round(nd_gc.map_center_x - y * 180.0f / (float)Math.PI * 60.0f * pixels_per_nm);
-
+            return resolve().x;
         }
 
         public int getY() {
-
-            return Math.round(nd_gc.map_center_y - x * 180.0f / (float)Math.PI * 60.0f * pixels_per_nm);
-
+            return resolve().y;
         }
 
+        protected void drawLine(Graphics2D g2, int x1, int y1, int x2, int y2) {
+            g2.drawLine(x1, y1, x2, y2);
+          //System.out.println("-------------- drawLine "+x1+" "+y1+" "+x2+" "+y2);
+        }
+
+        public void drawLineTo(Graphics2D g2, float lat, float lon, boolean zigzag) {
+            if (!zigzag) {
+                drawLineTo(g2, lat, lon);
+            } else {
+                Point p2 = geoToPixelCheck(lat, lon);
+                drawZigZag(g2, resolve(), p2);
+            }
+        }
+
+        public void drawLineTo(Graphics2D g2, float lat, float lon) {
+            Point p2 = geoToPixelCheck(lat, lon);
+            drawLine(g2, getX(), getY(), p2.x, p2.y);
+        }
+
+        public void drawZigZag(Graphics2D g2, Point p1, Point p2) {
+            AffineTransform orig = g2.getTransform();
+            int x   = p1.x;
+            int y   = p1.y;
+            int dx  = p2.x - x;
+            int dy  = p2.y - y;
+            int lth = (int)Math.hypot(dx, dy);
+            g2.translate(x, y);
+            g2.rotate(Math.atan2(dy, dx));
+            for (int i = 0 ; i < lth ; i += 8) {
+                g2.drawLine(i,    0, i+2,  4);
+                g2.drawLine(i+2,  4, i+6, -4);
+                g2.drawLine(i+6, -4, i+8,  0);
+            }
+            g2.setTransform(orig);
+        }
+
+        protected Point geoToPixelCheck(float lat, float lon) {
+            if (lat == center_lat && lon == center_lon)  { // bc AzimuthalEquidistantProjection seems to fail
+                return new Point(nd_gc.map_center_x, nd_gc.map_center_y);
+            } else {
+                return geoToPixel(lat, lon);
+            }
+        }
+
+        protected abstract Point geoToPixel(float lat, float lon);
     }
 
-    private Projection map_projection = new AzimuthalEquidistantProjection();
+   //
+   // -------------------------------- AzimuthalEquidistantProjection --------------------------------
+   //
+
+    private class AzimuthalEquidistantProjection extends Projection {
+
+        private final double phi1     = Math.toRadians(center_lat);
+        private final double lambda0  = Math.toRadians(center_lon);
+        private final double sin_phi1 = Math.sin(phi1);
+        private final double cos_phi1 = Math.cos(phi1);
+
+        public AzimuthalEquidistantProjection(float lat_max, float lat_min, float lon_max, float lon_min) {
+            super(lat_max, lat_min, lon_max, lon_min);
+        }
+
+        protected Point geoToPixel(float lat, float lon) {
+            double phi = Math.toRadians(lat);
+            double lambda = Math.toRadians(lon);
+            double sin_phi = Math.sin(phi);
+            double cos_phi = Math.cos(phi);
+            double d_lambda = lambda - lambda0;
+            double sin_d_lambda = Math.sin(d_lambda);
+            double cos_d_lambda = Math.cos(d_lambda);
+            // cos_rho = sin_phi1 * sin_phi + cos_phi1 * cos_phi * cos_d_lambda;
+            // tan_theta = cos_phi * sin_d_lambda / ( cos_phi1 * sin_phi - sin_phi1 * cos_phi * cos_d_lambda );
+            double rho   = Math.acos( sin_phi1 * sin_phi + cos_phi1 * cos_phi * cos_d_lambda);
+            double theta = Math.atan2(cos_phi1 * sin_phi - sin_phi1 * cos_phi * cos_d_lambda, cos_phi * sin_d_lambda);
+            float fx =   (float)(rho * Math.sin(theta));
+            float fy = - (float)(rho * Math.cos(theta));
+            int x = Math.round(nd_gc.map_center_x - fy * 180.0f / (float)Math.PI * 60.0f * pixels_per_nm);
+            int y = Math.round(nd_gc.map_center_y - fx * 180.0f / (float)Math.PI * 60.0f * pixels_per_nm);
+            return new Point(x, y);
+        }
+    }
+
+   //
+   // -------------------------------- WebMercatorProjection --------------------------------
+   //
+
+    private class WebMercatorProjection extends Projection {
+
+        private final double oneRadianInLatitudePixels  = pixels_per_deg_lat * 360 / Math.toRadians(360);
+
+        public WebMercatorProjection(float lat_max, float lat_min, float lon_max, float lon_min) {
+            super(lat_max, lat_min, lon_max, lon_min);
+        }
+
+        protected Point geoToPixel(float lat, float lon) {
+            double e = Math.sin((lat - center_lat) * Math.toRadians(1)); // Radians from screen center point
+            if (e > 0.9999d) {
+                e = 0.9999d;
+            } else if (e < -0.9999d) {
+                e = -0.9999d;
+            }
+            double dx = (lon - center_lon) * pixels_per_deg_lon;
+            double dy = 0.5d * Math.log((1.0d + e) / (1.0d - e)) * -1.0d * oneRadianInLatitudePixels;
+            int x = (int)Math.round(nd_gc.map_center_x + dx);
+            int y = (int)Math.round(nd_gc.map_center_y + dy);
+            return new Point(x, y);
+        }
+
+        public void drawLineTo(Graphics2D g2, float lat, float lon) {
+            ArrayList<Geo> geos = new ArrayList<Geo>();
+            Geo p0 = Geo.makeGeoDegrees(point_lat, point_lon);
+            Geo p1 = Geo.makeGeoDegrees(lat, lon);
+            geos.add(p0);
+            addPoints(geos, p0, p1);
+            Point lastPoint = null;
+            for (Geo geo : geos) {
+                lastPoint = drawFromTo(g2, lastPoint, geo);
+            }
+        }
+
+        public void addPoints(ArrayList<Geo> geos, Geo p0, Geo p1) {
+            double distance = p0.distance(p1);
+            if (distance > Math.toRadians(1)) { // Decrease this number to add detail
+                Geo pc = p0.midPoint(p1);
+                addPoints(geos, p0, pc);
+                addPoints(geos, pc, p1);
+            } else {
+                geos.add(p1);
+            }
+        }
+
+        private Point drawFromTo(Graphics2D g2, Point lastPoint, Geo geo) {
+            Point p2 = geoToPixelCheck((float)geo.getLatitude(), (float)geo.getLongitude());
+            if (lastPoint != null) {
+                drawLine(g2, lastPoint.x, lastPoint.y, p2.x, p2.y);
+            }
+            return p2;
+        }
+    }
+
+    /**
+     * This class is derived from "http://www.movable-type.co.uk/scripts/latlong.html"
+     * and replicates the interface used in "https://github.com/openmap-java/openmap"
+     */
+    private static class Geo {
+        final double lat;
+        final double lon;
+
+        static Geo makeGeoDegrees(double lat, double lon) {
+            return new Geo(lat, lon);
+        }
+
+        Geo(double lat, double lon) {
+            this.lat = lat;
+            this.lon = lon;
+        }
+
+        double getLatitude() {
+            return lat;
+        }
+
+        double getLongitude() {
+            return lon;
+        }
+
+        double distance(Geo g2) {
+            double phi_1 = Math.toRadians(lat);
+            double phi_2 = Math.toRadians(g2.lat);
+            double d_lam = Math.toRadians(g2.lon-lon);
+            return Math.acos(Math.sin(phi_1) * Math.sin(phi_2) + Math.cos(phi_1) * Math.cos(phi_2) * Math.cos(d_lam));
+        }
+
+        Geo midPoint(Geo g2) {
+            double phi_1 = Math.toRadians(lat);
+            double phi_2 = Math.toRadians(g2.lat);
+            double lam_1 = Math.toRadians(lon);
+            double lam_2 = Math.toRadians(g2.lon);
+            double Bx    = Math.cos(phi_2) * Math.cos(lam_2 - lam_1);
+            double By    = Math.cos(phi_2) * Math.sin(lam_2 - lam_1);
+            double phi_3 = Math.atan2(
+                                       Math.sin(phi_1) + Math.sin(phi_2),
+                                       Math.sqrt((Math.cos(phi_1) + Bx) * (Math.cos(phi_1) + Bx) + By * By)
+                                     );
+            double temp  = lam_1 + Math.atan2(By, Math.cos(phi_1) + Bx);
+            double lam_3 = (3 * Math.PI + temp) % (2 * Math.PI) - Math.PI;
+            return new Geo(Math.toDegrees(phi_3), Math.toDegrees(lam_3));
+        }
+    }
+
+
+   //
+   // ---------------------------------------------------------------------------------------
+   //
+
+
+    private Projection map_projection = null;
 
 
     public MovingMap(ModelFactory model_factory, NDGraphicsConfig hsi_gc, Component parent_component) {
@@ -247,11 +376,11 @@ public class MovingMap extends NDSubcomponent {
         symbols.setDecimalSeparator('.');
         MovingMap.vor_freq_formatter.setDecimalFormatSymbols(symbols);
         MovingMap.hms_formatter = new DecimalFormat("00");
-
     }
 
 
     public void paint(Graphics2D g2) {
+
 
         // don't draw the map in classic-HSI-style APP CTR or VOR CTR
         if ( nd_gc.powered && ! nd_gc.mode_classic_hsi ) {
@@ -270,7 +399,6 @@ public class MovingMap extends NDSubcomponent {
 
             // drawing the map over the scale rings
             drawMap(g2, nd_gc.max_range);
-
         }
 
         // area to display debug info...
@@ -857,9 +985,12 @@ public class MovingMap extends NDSubcomponent {
 
     }
 
-
     private void drawMap(Graphics2D g2, float radius_scale) {
+        drawMap0(g2, radius_scale);
+        map_projection = null;
+    }
 
+    private void drawMap0(Graphics2D g2, float radius_scale) {
         this.center_lat = this.aircraft.lat();
         this.center_lon = this.aircraft.lon();
 
@@ -879,21 +1010,28 @@ public class MovingMap extends NDSubcomponent {
         }
 
         this.pixels_per_nm = (float)nd_gc.rose_radius / radius_scale; // float for better precision
-        if ( nd_gc.map_zoomin ) this.pixels_per_nm *= 100.0f;
-
-//        this.map_projection.setScale(this.pixels_per_nm);
-        this.map_projection.setAcf(this.center_lat, this.center_lon);
+        if ( nd_gc.map_zoomin ) {
+            pixels_per_nm *= 100.0f;
+        }
 
         // determine max and min lat/lon in viewport to only draw those
         // elements that can be displayed
+
         float delta_lat = radius_scale * CoordinateSystem.deg_lat_per_nm();
         float delta_lon = radius_scale * CoordinateSystem.deg_lon_per_nm(this.center_lat);
-        float range_multiply = this.preferences.get_draw_only_inside_rose() ? 1.0f : 1.5f;
-        // multiply by 1.5f to draw symbols outside the rose
+        // multiply by 1.5f (or more) to draw symbols outside the rose
+        float extra = Math.max(1.0f, (float)nd_gc.frame_size.width / nd_gc.frame_size.height);
+        float range_multiply = this.preferences.get_draw_only_inside_rose() ? 1.0f : 1.5f * extra;
         float lat_max = this.center_lat + delta_lat * range_multiply;
         float lat_min = this.center_lat - delta_lat * range_multiply;
         float lon_max = this.center_lon + delta_lon * range_multiply;
         float lon_min = this.center_lon - delta_lon * range_multiply;
+
+        if (JXMap.getMode() == JXMap.OFF) {
+            map_projection = new AzimuthalEquidistantProjection(lat_max, lat_min, lon_max, lon_min);
+        } else {
+            map_projection = new WebMercatorProjection(lat_max, lat_min, lon_max, lon_min);
+        }
 
         // pixels per degree
         this.pixels_per_deg_lat = nd_gc.rose_radius / delta_lat;
@@ -927,7 +1065,7 @@ public class MovingMap extends NDSubcomponent {
             int mean_lon = Math.round(this.center_lon);
 
             int gridrange = nd_gc.map_range/60;
-            for (int i=-gridrange; i<=gridrange; i++) {
+            for (int i=-gridrange*4; i<=gridrange*4; i++) {
                 for (int j=-gridrange; j<=gridrange; j++) {
                     map_projection.setPoint((mean_lat + j), (mean_lon + i));
                     int x0 = map_projection.getX();
@@ -962,7 +1100,7 @@ public class MovingMap extends NDSubcomponent {
                             );
                     }
 
-                    if ( avionics.efis_shows_ndb() && ((nd_gc.map_range <= 160)||nd_gc.map_zoomin) ) {
+                    if ( avionics.efis_shows_ndb() && ((nd_gc.map_range <= NDB_MAX_RANGE)||nd_gc.map_zoomin) ) {
                         draw_nav_objects(
                                 g2,
                                 NavigationObject.NO_TYPE_NDB,
@@ -970,7 +1108,7 @@ public class MovingMap extends NDSubcomponent {
                             );
                     }
 
-                    if ( avionics.efis_shows_vor() && ((nd_gc.map_range <= 160)||nd_gc.map_zoomin) ) {
+                    if ( avionics.efis_shows_vor() && ((nd_gc.map_range <= VOR_MAX_RANGE)||nd_gc.map_zoomin) ) {
                         draw_nav_objects(
                                 g2,
                                 NavigationObject.NO_TYPE_VOR,
@@ -978,7 +1116,7 @@ public class MovingMap extends NDSubcomponent {
                             );
                     }
 
-                    if ( avionics.efis_shows_arpt() && ((nd_gc.map_range <= 160)||nd_gc.map_zoomin) ) {
+                    if ( avionics.efis_shows_arpt() && ((nd_gc.map_range <= ARPT_MAX_RANGE)||nd_gc.map_zoomin) ) {
                         draw_nav_objects(
                                 g2,
                                 NavigationObject.NO_TYPE_AIRPORT,
@@ -1120,6 +1258,7 @@ public class MovingMap extends NDSubcomponent {
 
         // draw FMS route
         if ( this.fms.is_active() && ( nd_gc.mode_fullmap || ( this.avionics.hsi_source() == Avionics.HSI_SOURCE_GPS ) ) ) {
+/* Old code
             int nb_of_entries = this.fms.get_nb_of_entries();
             FMSEntry entry;
             FMSEntry next_entry = null;
@@ -1137,6 +1276,9 @@ public class MovingMap extends NDSubcomponent {
 
                 draw_FMS_entry(g2, entry, next_entry, inactive);
             }
+
+*/
+            draw_FMS_route(g2);
         }
 
         //g2.setTransform(original_at);
@@ -1300,11 +1442,9 @@ public class MovingMap extends NDSubcomponent {
 
             navobj = (NavigationObject)nav_objects.get(i);
             map_projection.setPoint(navobj.lat, navobj.lon);
-            int x = map_projection.getX();
-            int y = map_projection.getY();
-            double dist = Math.hypot( x - nd_gc.map_center_x, y - nd_gc.map_center_y );
-            float max_dist = this.preferences.get_draw_only_inside_rose() ? nd_gc.rose_radius : nd_gc.rose_radius * 1.5f;
-            if ( dist < max_dist ) {
+            if (map_projection.pointIsVisible()) {
+                int x = map_projection.getX();
+                int y = map_projection.getY();
 
                 if (type == NavigationObject.NO_TYPE_NDB) {
 
@@ -1753,7 +1893,11 @@ public class MovingMap extends NDSubcomponent {
 
     }
 
+//
+// ------------------------------------------- OLD -------------------------------------------------
+//
 
+/*
     private void draw_FMS_entry(Graphics2D g2, FMSEntry entry, FMSEntry next_entry, boolean inactive) {
 
 //        DecimalFormat eta_hours_formatter = new DecimalFormat("00");
@@ -1807,9 +1951,109 @@ public class MovingMap extends NDSubcomponent {
             g2.setStroke(original_stroke);
         }
 
-        double dist = Math.hypot( x-nd_gc.map_center_x, y-nd_gc.map_center_y );
-        float max_dist = this.preferences.get_draw_only_inside_rose() ? nd_gc.rose_radius : nd_gc.rose_radius * 1.5f;
-        if ( dist < max_dist ) {
+        draw_FMS_detail(g2, entry, override_active);
+    }
+*/
+
+//
+// ------------------------------------------- NEW -------------------------------------------------
+//
+
+    private final static boolean DRAW_FLOWN_LEGS = false;
+
+    private void draw_FMS_route(Graphics2D g2) {
+        float[] lastPoint = new float[] {center_lat, center_lon};
+        boolean legHasBeenFlown = true;
+        int count = fms.get_nb_of_entries();
+        for (int i = 0 ; i < count ; i++) {
+            FMSEntry entry = fms.get_entry(i);
+            if (entry != null) {
+                if (entry.active) {
+                    legHasBeenFlown = false;
+                }
+                lastPoint = draw_FMS_entry(g2, entry, legHasBeenFlown, lastPoint);
+            }
+        }
+    }
+
+    private float[] draw_FMS_entry(Graphics2D g2, FMSEntry entry, boolean legHasBeenFlown, float[] lastPoint) {
+        float[] nextPoint = new float[] {entry.lat, entry.lon};
+        String navId = avionics.gps_nav_id();
+        boolean entryEqualsNavId = entry.name.equals(navId);
+        boolean active = entry.active || entryEqualsNavId;
+      //System.out.println(""+entry.index + " type="+entry.type+": flown=" + legHasBeenFlown + " name=" + entry.name + (active ? "*" : "") + (entryEqualsNavId ? "+" : " (navid="+avionics.gps_nav_id()+")"));
+
+        if (active || !legHasBeenFlown || DRAW_FLOWN_LEGS) {
+            boolean certain = true;
+            /*
+             * When the X-Plane Garmin GPS is directing an approach, only the
+             * destination airport is available. The ND display can be enhanced
+             * by looking up the current GPS nav id and displaying that as the
+             * next waypoint (which it is), and then joining the end of this to
+             * the final airport with a zigzag line to indicate the uncertainly
+             * of what may happen between these points.
+             */
+            if (active && !entryEqualsNavId) {
+                NavigationObject nobj = nor.get_nav_object(navId);
+                if (nobj != null) {
+                    float[] navPoint = new float[] {nobj.lat, nobj.lon};
+                    lastPoint = draw_FMS_line(g2, active, legHasBeenFlown, true, lastPoint, navPoint);
+                    draw_FMS_detail(g2, nobj.name);
+                }
+                certain = false;
+            }
+            draw_FMS_line(g2, active, legHasBeenFlown, certain, lastPoint, nextPoint);
+            draw_FMS_detail(g2, entry, !certain);
+        }
+        return nextPoint;
+    }
+
+    private float[] draw_FMS_line(Graphics2D g2, boolean active, boolean legHasBeenFlown, boolean certain, float[] lastPoint, float[] nextPoint) {
+        if (active && certain) {
+            g2.setColor(nd_gc.fmc_active_color);
+        } else if (!legHasBeenFlown) {
+            g2.setColor(nd_gc.fmc_other_color);
+        } else {
+            g2.setColor(nd_gc.fmc_other_color.darker());
+        }
+        Stroke original_stroke = g2.getStroke();
+        g2.setStroke(new BasicStroke(1.5f));
+        map_projection.setPoint(nextPoint[0], nextPoint[1]);
+        map_projection.drawLineTo(g2, lastPoint[0], lastPoint[1], !certain);
+        g2.setStroke(original_stroke);
+        return nextPoint;
+    }
+
+    private void draw_FMS_detail(Graphics2D g2, String name) {
+        draw_FMS_detail0(g2, name, 0, 0, 0, false, true);
+    }
+
+//
+// -------------------------------------------------------------------------------------------------
+//
+
+    private void draw_FMS_detail(Graphics2D g2, FMSEntry entry, boolean override_active) {
+        String  entry_name      = entry.name;
+        int     entry_type      = entry.type;
+        int     entry_altitude  = entry.altitude;
+        float   entry_total_ete = entry.total_ete;
+        boolean entry_displayed = entry.displayed;
+        boolean entry_active    = entry.active;
+        draw_FMS_detail0(g2, entry_name, entry_type, entry_altitude, entry_total_ete, entry_displayed, entry_active && !override_active);
+    }
+
+    private void draw_FMS_detail0(Graphics2D g2,
+                                  String  entry_name,
+                                  int entry_type,
+                                  int entry_altitude,
+                                  float entry_total_ete,
+                                  boolean entry_displayed,
+                                  boolean entry_active) {
+
+        if (map_projection.pointIsVisible()) {
+
+            int x = map_projection.getX();
+            int y = map_projection.getY();
 
             int s3 = Math.round(2.0f*nd_gc.scaling_factor);
             int s13 = Math.round(12.0f*nd_gc.scaling_factor);
@@ -1826,13 +2070,13 @@ public class MovingMap extends NDSubcomponent {
             boolean data_inhibit = false;
             int label_y = y12;
 
-            if ( entry.type == 2048 ) {
-                if ( entry.name.equals("Lat/Lon") || entry.name.equals("L/L") ) {
-                    if (entry.active && ! override_active) {
+            if ( entry_type == 2048 ) {
+                if ( entry_name.equals("Lat/Lon") || entry_name.equals("L/L") ) {
+                    if (entry_active) {
                         // a small magenta circle for unnamed active waypoints
                         g2.setColor(nd_gc.fmc_active_color);
                         g2.drawOval(x-c4, y-c4, 2*c4, 2*c4);
-                    } else if (entry.displayed)  {
+                    } else if (entry_displayed)  {
                         g2.setColor(nd_gc.fmc_active_color);
                         g2.drawOval(x-c4, y-c4, 2*c4, 2*c4);
                     } else {
@@ -1844,49 +2088,49 @@ public class MovingMap extends NDSubcomponent {
                     label_y -= 1;
                 } else {
                     // T/C, T/D, B/D, S/C, ACCEL or DECEL
-                    if (entry.active && ! override_active) {
+                    if (entry_active) {
                         g2.setColor(nd_gc.fmc_ll_active_color);
-                    } else if (entry.displayed) {
+                    } else if (entry_displayed) {
                         g2.setColor(nd_gc.fmc_ll_disp_color);
                     } else {
                         g2.setColor(nd_gc.fmc_ll_other_color);
                     }
                     g2.drawOval(x-c6, y-c6, 2*c6, 2*c6);
                     g2.setFont(nd_gc.font_xs);
-                    g2.drawString(entry.name, x + x12, y + label_y);
+                    g2.drawString(entry_name, x + x12, y + label_y);
                     label_y += nd_gc.line_height_xxs;
                 }
             } else {
                 // ARPT, VOR, NDB or FIX waypoints
-                if (entry.active && ! override_active) {
+                if (entry_active) {
                     g2.setColor(nd_gc.fmc_active_color);
-                } else if (entry.displayed) {
+                } else if (entry_displayed) {
                     g2.setColor(nd_gc.fmc_disp_color);
                 } else {
                     g2.setColor(nd_gc.fmc_other_color);
                 }
                 g2.drawPolygon(x_points_star, y_points_star, 9);
                 g2.setFont(nd_gc.font_xs);
-                g2.drawString(entry.name, x + x12, y + label_y);
+                g2.drawString(entry_name, x + x12, y + label_y);
                 label_y += nd_gc.line_height_xxs;
             }
 
             if ( avionics.efis_shows_data() && !data_inhibit ) {
                 g2.setFont(nd_gc.font_xxs);
 // the color is already set...
-//                if (entry.active) {
+//                if (entry_active) {
 //                    g2.setColor(nd_gc.fmc_active_color);
-//                } else if (entry.displayed) {
+//                } else if (entry_displayed) {
 //                    g2.setColor(nd_gc.fmc_disp_color);
 //                } else {
 //                    g2.setColor(nd_gc.fmc_other_color);
 //                }
-                if ( entry.altitude != 0 ) {
-                    g2.drawString("" + entry.altitude, x + x12, y + label_y);
+                if ( entry_altitude != 0 ) {
+                    g2.drawString("" + entry_altitude, x + x12, y + label_y);
                     label_y += nd_gc.line_height_xxs;
                 }
-                if ( entry.total_ete != 0.0f ) {
-                    int wpt_eta = Math.round( (float)this.aircraft.time_after_ete(entry.total_ete) / 60.0f );
+                if ( entry_total_ete != 0.0f ) {
+                    int wpt_eta = Math.round( (float)this.aircraft.time_after_ete(entry_total_ete) / 60.0f );
                     int hours_at_arrival = (wpt_eta / 60) % 24;
                     int minutes_at_arrival = wpt_eta % 60;
 //                    String eta_text = "" + eta_hours_formatter.format(hours_at_arrival) + eta_minutes_formatter.format(minutes_at_arrival) + "z";
@@ -1899,6 +2143,4 @@ public class MovingMap extends NDSubcomponent {
             g2.setTransform(original_at);
         }
     }
-
-
 }

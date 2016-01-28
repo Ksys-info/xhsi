@@ -159,6 +159,9 @@ public class HeadingLabel extends NDSubcomponent {
             } else {
                 int x_points_airplane_symbol[] = { center_x, center_x - (pw/2), center_x + (pw/2) };
                 int y_points_airplane_symbol[] = { center_y, center_y + ph, center_y + ph };
+                g2.setColor(nd_gc.background_color);
+                g2.fillPolygon(x_points_airplane_symbol, y_points_airplane_symbol, 3);
+                g2.setColor(nd_gc.aircraft_color);
                 g2.drawPolygon(x_points_airplane_symbol, y_points_airplane_symbol, 3);
             }
 

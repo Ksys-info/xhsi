@@ -1,30 +1,31 @@
 /**
 * XPlaneSimDataRepository.java
-* 
+*
 * Stores and provides access to all simulation data variables. This repository
 * is updated by XPlaneDataPacketDecoder. Observers can subscribe to changes
 * in this repository. All observers are updated by calling the tick_updates
 * method of this repository.
-* 
+*
 * Copyright (C) 2007  Georg Gruetter (gruetter@gmail.com)
 * Copyright (C) 2009  Marc Rogiers (marrog.123@gmail.com)
-* 
+*
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2 
+* as published by the Free Software Foundation; either version 2
 * of the License, or (at your option) any later version.
 *
 * This library is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU Lesser General Public
 * License along with this library; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 */
 package net.sourceforge.xhsi.model.xplane;
 
+import java.awt.Component;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 
@@ -187,28 +188,28 @@ public class XPlaneSimDataRepository implements SimDataRepository {
     public static final int XHSI_RTU_CONTACT_ATC = 185; // also works for PilotEdge
     public static final int XHSI_RTU_SELECTED_RADIO = 186; // 0:none, 1:COM1, 2:NAV1, 3:ADF1, 4:XPDR_CODE, 5:XPDR_MODE, 6:ADF2, 7:NAV2, 8:COM2
     public static final int XHSI_RTU_PILOTEDGE_RX = 187; // works only for PilotEdge
-    
-    
+
+
     // Clock mode
     public static final int SIM_COCKPIT2_CLOCK_TIMER_MODE = 190; // 0 = GMT, 1 = Local Time, 2 = Date, 3 = Timer
     public static final int XHSI_CHR_CONTROL = 191; // to send commands to the plugin 1=Start/Stop/Reset, 2=Start/Stop, 3=Reset
 
-    
+
     // CDU source
     public static final int XHSI_CDU_SOURCE = 192;
-    
-    
+
+
     // COM1 & 2 using 8.33kHz spacing
     public static final int SIM_COCKPIT2_RADIOS_ACTUATORS_COM1_FREQUENCY_HZ_833 = 194;
     public static final int SIM_COCKPIT2_RADIOS_ACTUATORS_COM1_STANDBY_FREQUENCY_HZ_833 = 195;
     public static final int SIM_COCKPIT2_RADIOS_ACTUATORS_COM2_FREQUENCY_HZ_833 = 196;
     public static final int SIM_COCKPIT2_RADIOS_ACTUATORS_COM2_STANDBY_FREQUENCY_HZ_833 = 197;
-    
+
     // GPS next waypoint ID
     public static final int SIM_COCKPIT2_RADIOS_INDICATORS_GPS_NAV_ID_0_3 = 10198; // the 4 first characters
     public static final int SIM_COCKPIT2_RADIOS_INDICATORS_GPS_NAV_ID_4_7 = 10199; // the next 4 characters
-   
-    
+
+
     // EFIS
     public static final int SIM_COCKPIT_SWITCHES_HSI_SELECTOR = 200; // 0=NAV1, 1=NAV2, 2=GPS
     public static final int SIM_COCKPIT_SWITCHES_EFIS_MAP_RANGE_SELECTOR = 201; // 0=10NM, 1=20, 2=40, etc...
@@ -251,12 +252,12 @@ public class XPlaneSimDataRepository implements SimDataRepository {
     public static final int XHSI_ENGINE_TYPE = 280;
     public static final int XHSI_EICAS_TRQ_SCALE = 281;
     public static final int XHSI_FUEL_UNITS = 282;
-    
+
 
     // MFD
     public static final int XHSI_MFD_MODE = 290;
 
-    
+
     // Environment
     public static final int SIM_WEATHER_WIND_SPEED_KT = 300;
     public static final int SIM_WEATHER_WIND_DIRECTION_DEGT = 301;
@@ -298,7 +299,7 @@ public class XPlaneSimDataRepository implements SimDataRepository {
     public static final int SIM_AIRCRAFT_ENGINE_RED_OIL_P = 342;
     public static final int SIM_AIRCRAFT_ENGINE_RED_OIL_T = 343;
     public static final int SIM_AIRCRAFT_ENGINE_RED_EPR = 344;
-    
+
     // Controls & annunciators
     public static final int SIM_COCKPIT2_ANNUNCIATORS_MASTER_CAUTION = 350;
     public static final int SIM_COCKPIT2_ANNUNCIATORS_MASTER_WARNING = 351;
@@ -332,7 +333,7 @@ public class XPlaneSimDataRepository implements SimDataRepository {
     public static final int SIM_COCKPIT2_CONTROLS_LEFT_BRK_RATIO = 397;
     public static final int SIM_COCKPIT2_CONTROLS_RIGHT_BRK_RATIO = 398;
     public static final int XHSI_AIRCRAFT_GEAR_DOOR_COUNT = 399;
-    
+
     // Fuel, engines, etc...
     public static final int SIM_AIRCRAFT_OVERFLOW_ACF_NUM_TANKS = 400;
     public static final int SIM_AIRCRAFT_ENGINE_ACF_NUM_ENGINES = 401;
@@ -377,19 +378,19 @@ public class XPlaneSimDataRepository implements SimDataRepository {
     public static final int SIM_FLIGHTMODEL_ENGINE_ENGN_EPR_ = 620;
     public static final int SIM_COCKPIT2_ENGINE_ACTUATORS_THROTTLE_RATIO_ = 630;
     public static final int XHSI_FUEL_USED_ = 640;
-    
+
     // Control surface positions : rudder, elevators, ailerons, spoilers
     public static final int SIM_FLIGHTMODEL_CONTROLS_RUDDER = 650;
     public static final int SIM_FLIGHTMODEL_CONTROLS_LEFT_ELEV = 651;
     public static final int SIM_FLIGHTMODEL_CONTROLS_RIGHT_ELEV = 652;
     public static final int SIM_FLIGHTMODEL_CONTROLS_LEFT_AIL = 653;
     public static final int SIM_FLIGHTMODEL_CONTROLS_RIGHT_AIL = 654;
-    
+
     // Cabin Pressure
     public static final int SIM_COCKPIT2_PRESSURIZATION_CABIN_DELTA_P=655;
     public static final int SIM_COCKPIT2_PRESSURIZATION_CABIN_ALT=656;
     public static final int SIM_COCKPIT2_PRESSURIZATION_CABIN_VVI=657;
-    
+
     // UFMC
     public static final int UFMC_STATUS = 700;
     // UFMC V-speeds
@@ -409,7 +410,7 @@ public class XPlaneSimDataRepository implements SimDataRepository {
     //XFMC
     public static final int XFMC_KEYPATH = 750; // to send commands to the plugin
 
-    
+
     // X737
     public static final int X737_STATUS = 800;
     // X737 AP
@@ -451,7 +452,7 @@ public class XPlaneSimDataRepository implements SimDataRepository {
     public static final int X737_STBY_PWR = 835;
     public static final int X737_PFD_PWR = 836;
 
-    
+
     // CL30
     public static final int CL30_STATUS = 850;
     // CL30 REF
@@ -469,19 +470,19 @@ public class XPlaneSimDataRepository implements SimDataRepository {
     public static final int CL30_CARETS = 860;
     public static final int CL30_TO_N1 = 861;
     public static final int CL30_CLB_N1 = 862;
-    
-    
+
+
     // Settings & Preferences
     // General instrument style
     public static final int XHSI_STYLE = 900;
     // Minimum runway length
     public static final int XHSI_RWY_LENGTH_MIN = 901; // Override with this value if it is > 0
     public static final int XHSI_RWY_UNITS = 902; // 0:Meters 1:Feet
-    
-    
+
+
     // QPAC AirbusFBW
     public static final int QPAC_STATUS=1000;
-    // Autopilot  
+    // Autopilot
     public static final int QPAC_AP_FD=1001;
     public static final int QPAC_AP_PHASE=1002;
     public static final int QPAC_PRESEL_CRZ=1003;
@@ -521,7 +522,7 @@ public class XPlaneSimDataRepository implements SimDataRepository {
     public static final int QPAC_ILS_FREQ=1031;
     public static final int QPAC_ILS_ID=11032;
     public static final int QPAC_ILS_DME=1033;
-    
+
     // FD
     public static final int QPAC_FD1_VER_BAR=1034;
     public static final int QPAC_FD1_HOR_BAR=1035;
@@ -544,7 +545,7 @@ public class XPlaneSimDataRepository implements SimDataRepository {
     public static final int QPAC_EFIS_ND_MODE_CAPT=1050;
     public static final int QPAC_EFIS_ND_RANGE_CAPT=1051;
     public static final int QPAC_EFIS_ND_MODE_FO=1052;
-    public static final int QPAC_EFIS_ND_RANGE_FO=1053;  
+    public static final int QPAC_EFIS_ND_RANGE_FO=1053;
     public static final int QPAC_EFIS_ND_SYMBOLS=1054;
     // Failures flags
     public static final int QPAC_FAILURES=1055;
@@ -593,10 +594,10 @@ public class XPlaneSimDataRepository implements SimDataRepository {
     // Key press to commands
     public static final int QPAC_KEY_PRESS=1089;
     // IDs reserved for QPAC up to 1199
-    
+
     // JarDesign Airbus A320neo
     public static final int JAR_A320NEO_STATUS=1200;
-    
+
     // FMS
     public static final int JAR_A320NEO_PRESEL_CRZ=1201;
     public static final int JAR_A320NEO_PRESEL_CLB=1202;
@@ -649,7 +650,7 @@ public class XPlaneSimDataRepository implements SimDataRepository {
     // MCDU Clics
     public static final int JAR_A320NEO_MCDU_CLICK=1257;
 
-    
+
     // Plugin Version
     public static final int PLUGIN_VERSION_ID = 999;
 
@@ -662,7 +663,7 @@ public class XPlaneSimDataRepository implements SimDataRepository {
     long updates = 0;
     ArrayList observers;
     public static boolean replaying = false;
-  
+
 //    private static XPlaneSimDataRepository single_instance;
 //
 //    public static XPlaneSimDataRepository get_instance() {
@@ -714,8 +715,12 @@ public class XPlaneSimDataRepository implements SimDataRepository {
     public void tick_updates() {
         this.updates += 1;
         for (int i=0; i<this.observers.size(); i++) {
-            logger.finest("Updating observer "+i);
-            ((Observer) this.observers.get(i)).update();
+            Observer o = (Observer) this.observers.get(i);
+            boolean update = !(o instanceof Component) || ((Component)o).isVisible();
+            if (update) {
+                logger.finest("Updating observer "+i);
+                o.update();
+            }
         }
     }
 

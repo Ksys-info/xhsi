@@ -60,7 +60,7 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
     private NavigationObjectRepository nor;
     private ProgressObserver progressObserver;
     private Fix fix;
-    
+
     private static Logger logger = Logger.getLogger("net.sourceforge.xhsi");
 
 
@@ -83,7 +83,7 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
 
 //            this.nor.init();
 
-            // read the "<aptnavdir>/Custom Scenery/<pack>/Earth nav data/apt.dat" in the other specified by scenery_packs.ini
+            // read the "<aptnavdir>/Custom Scenery/<pack>/Earth nav data/apt.dat" in the order specified by scenery_packs.ini
             if (this.progressObserver != null) {
                 this.progressObserver.set_progress("Loading databases", "Loading Custom Scenery APT ...", 0.0f);
             }
@@ -114,7 +114,7 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
             }
             // read the "<aptnavdir>/Global Scenery/<pack>/Earth nav data/apt.dat" in alphabetical other
             scan_apt_files("Global Scenery");
-            
+
             if (this.progressObserver != null) {
                 this.progressObserver.set_progress("Loading databases", "Loading Default Scenery APT ...", 20.0f);
             }
@@ -173,8 +173,8 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
         }
 
     }
-    
-    
+
+
     private void read_an_apt_file(File apt_file) throws Exception {
 
         BufferedReader reader = new BufferedReader( new FileReader( apt_file ));
@@ -184,7 +184,7 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
         String[] tokens;
         String airport_icao_code = "";
         String airport_name = "";
-        boolean current_airport_saved = true; // this is a trick to say that there is no previous airport when starting to read the first 
+        boolean current_airport_saved = true; // this is a trick to say that there is no previous airport when starting to read the first
         ArrayList runways = new ArrayList();
         float width;
         int surface;
@@ -407,12 +407,12 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
                     XHSIStatus.nav_db_cycle = line.substring(25, 32);
                 } else if ( (line_number > 2)  && ( ! line.equals("99") ) ) {
                     try {
-                        
+
                         tokens = line.split("\\s+",9);
                         info_type = Integer.parseInt(tokens[0]);
-                        
+
                         if ( (info_type ==2) || (info_type == 3) || (info_type == 13) ) {
-                            
+
                             // 2=NDB, 3=VOR (VOR, VOR-DME, VORTAC) 13=DME (Standalone DME, TACAN)
                             // tokens = line.split("\\s+",9);
                             nor.add_nav_object(new RadioNavBeacon(
@@ -426,9 +426,9 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
                                     Integer.parseInt(tokens[5]), // range
                                     Float.parseFloat(tokens[6])  // NDB: zero , VOR: offset
                                 ));
-                            
+
                         } else if ((info_type == 4) || (info_type == 5)) {
-                            
+
                             // ILS or LOC
                             tokens = line.split("\\s+",11);
                             // search for a twin, i.e. an ILS with the same frequency at the same airport
@@ -488,9 +488,9 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
                             } else {
                                 logger.warning("Error NAV.dat: no ILS for GS " + tokens[7] + " " + tokens[4]);
                             }
-                            
+
                         } else if (info_type == 12) {
-                            
+
                             // update the VOR, LOC, ILS or IGS with this DME
                             // (we can do this in the same loop, since the file is sorted by info_type)
                             tokens = line.split("\\s+",9);
@@ -504,11 +504,11 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
                                 logger.warning("Error NAV.dat: no VOR or Loc for DME " + tokens[7] + " " + tokens[4]);
                             }
                         }
-                        
+
                     } catch (Exception e) {
                         logger.warning("Parse error in " + file.getName() + ":" + line_number + " '" + line + "' (" + e + ")");
                     }
-                    
+
                 }
 
             } // line ! isEmpty

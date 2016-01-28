@@ -77,7 +77,7 @@ public class ForegroundMessages extends NDSubcomponent {
             if ( this.avionics.efis_shows_arpt() ) {
                 label_str = "ARPT";
                 g2.clearRect(nd_gc.left_label_x - nd_gc.digit_width_xs/2, nd_gc.left_label_arpt_y - nd_gc.line_height_xs, g2.getFontMetrics(nd_gc.font_xs).stringWidth(label_str) + nd_gc.digit_width_xs, nd_gc.line_height_xs*10/8);
-                if ( ( (nd_gc.map_range <= 160) || nd_gc.map_zoomin ) && nd_gc.mode_fullmap ) {
+                if ( ( (nd_gc.map_range <= MovingMap.ARPT_MAX_RANGE) || nd_gc.map_zoomin ) && nd_gc.mode_fullmap ) {
                     g2.setColor(nd_gc.arpt_color);
                 } else {
                     g2.setColor(nd_gc.dim_label_color);
@@ -99,7 +99,7 @@ public class ForegroundMessages extends NDSubcomponent {
             if ( this.avionics.efis_shows_vor() ) {
                 label_str = "VOR";
                 g2.clearRect(nd_gc.left_label_x - nd_gc.digit_width_xs/2, nd_gc.left_label_vor_y - nd_gc.line_height_xs, g2.getFontMetrics(nd_gc.font_xs).stringWidth(label_str) + nd_gc.digit_width_xs, nd_gc.line_height_xs*10/8);
-                if ( ( (nd_gc.map_range <= 160) || nd_gc.map_zoomin ) && nd_gc.mode_fullmap ) {
+                if ( ( (nd_gc.map_range <= MovingMap.VOR_MAX_RANGE) || nd_gc.map_zoomin ) && nd_gc.mode_fullmap ) {
                     g2.setColor(nd_gc.navaid_color);
                 } else {
                     g2.setColor(nd_gc.dim_label_color);
@@ -110,7 +110,7 @@ public class ForegroundMessages extends NDSubcomponent {
             if ( this.avionics.efis_shows_ndb() ) {
                 label_str = "NDB";
                 g2.clearRect(nd_gc.left_label_x - nd_gc.digit_width_xs/2, nd_gc.left_label_ndb_y - nd_gc.line_height_xs, g2.getFontMetrics(nd_gc.font_xs).stringWidth(label_str) + nd_gc.digit_width_xs, nd_gc.line_height_xs*10/8);
-                if ( ( (nd_gc.map_range <= 160) || nd_gc.map_zoomin ) && nd_gc.mode_fullmap ) {
+                if ( ( (nd_gc.map_range <= MovingMap.NDB_MAX_RANGE) || nd_gc.map_zoomin ) && nd_gc.mode_fullmap ) {
                     g2.setColor(nd_gc.navaid_color);
                 } else {
                     g2.setColor(nd_gc.dim_label_color);

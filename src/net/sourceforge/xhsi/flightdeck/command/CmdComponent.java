@@ -50,12 +50,16 @@ import net.sourceforge.xhsi.model.Observer;
 import net.sourceforge.xhsi.model.ModelFactory;
 
 
+
 public class CmdComponent extends JPanel implements Observer, PreferencesObserver, ActionListener {
 
     private static final long serialVersionUID = 1L;
     public static boolean COLLECT_PROFILING_INFORMATION = false;
     public static long NB_OF_PAINTS_BETWEEN_PROFILING_INFO_OUTPUT = 100;
     private static Logger logger = Logger.getLogger("net.sourceforge.xhsi");
+
+    private static int lastWinNumber = 0;
+    private static int lowWinNumber = 0;
 
     // subcomponents --------------------------------------------------------
     ArrayList subcomponents = new ArrayList();
@@ -72,7 +76,7 @@ public class CmdComponent extends JPanel implements Observer, PreferencesObserve
     final CmdConfigurator conf = CmdConfigurator.getInstance();
     private XCommBuffers xcb = new XCommBuffers();
     long lastData = 0;
-    boolean isWinZero;
+    int winNumber;
 
     public CmdComponent(int du, JFrame frame, int winNumber) {
         super(new GridBagLayout());
@@ -81,14 +85,15 @@ public class CmdComponent extends JPanel implements Observer, PreferencesObserve
         this.aircraft = this.model_factory.get_aircraft_instance();
         this.avionics = this.aircraft.get_avionics();
         this.frame = frame;
-        this.isWinZero = winNumber == 0;
         this.cmd_gc.reconfig = true;
+        this.winNumber = winNumber;
         update0();
         addComponentListener(cmd_gc);
         subcomponents.add(commander = new Commander(this, winNumber));
         Timer t = new Timer(250, this);
         t.start();
         t.setInitialDelay(2000);
+        setVisible(true);
         repaint();
     }
 
@@ -112,7 +117,7 @@ public class CmdComponent extends JPanel implements Observer, PreferencesObserve
             }
         }
         repaint();
-        if (isWinZero && (now / 250) % 20 == 0) { // Every 5 seconds
+        if (winNumber == lowWinNumber && (now / 250) % 20 == 0) { // Every 5 seconds
             conf.saveAllWindowPositions();
         }
     }
@@ -121,9 +126,11 @@ public class CmdComponent extends JPanel implements Observer, PreferencesObserve
      * update0
      */
     private void update0() {
-        if (isWinZero) {
+        if (winNumber <= lastWinNumber) {
+            lowWinNumber = winNumber;
             conf.setAnalysis(new Analysis(conf.getFlightState(), conf.getCommanderProperties(), xcb, aircraft, avionics));
         }
+        lastWinNumber = winNumber;
     }
 
     /**
@@ -132,7 +139,9 @@ public class CmdComponent extends JPanel implements Observer, PreferencesObserve
     public void update() {
         lastData = System.currentTimeMillis();
         update0();
-        repaint();
+        if (frame.isVisible()) {
+            repaint();
+        }
     }
 
     public void paintComponent(Graphics g) {

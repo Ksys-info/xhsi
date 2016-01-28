@@ -1,7 +1,7 @@
 /**
  * JXMap.java
  *
- * This file is taken in part from XHSI, and a projecy called XPDisplay at:
+ * This file is taken in part from XHSI, and a project called XPDisplay at:
  *
  *    http://www.duncanjauncey.com/06-xpdisplay/
  *
@@ -235,7 +235,7 @@ public class JXMap {
           //tx.translate(-map_center_x, -map_center_y);  // Translate origin back to center (Or rather don't)
 
             if (DEBUG) {
-                System.out.println("CB1 = "+(""+g2.getClipBounds()).substring(18));
+                System.out.println("CB = "+(""+g2.getClipBounds()).substring(18));
                 g2.setFont(nd_gc.font_xxxl);
             }
 
@@ -275,7 +275,7 @@ public class JXMap {
          */
         private int calculateZoom(TileFactoryInfo info) {
             double degrees_in_frame = max_frame_pixels * degrees_per_pixel;
-            int degrees_in_frame_x1000 = (int)(degrees_in_frame * 1000);
+            int degrees_in_frame_x1000 = (int)(degrees_in_frame * 1000); // Quantize a little so this does not trigger on every frame
             if (degrees_in_frame_x1000 != last_degrees_in_frame_x1000) {
                 last_degrees_in_frame_x1000 = degrees_in_frame_x1000;
                 double map_stretch = 0;
@@ -324,22 +324,20 @@ public class JXMap {
             int centerTileY  = centerPixelY / tileSize;
             int total = (2*tileRadius) * (2*tileRadius);
             int[] list = new int[total];
-            int count = 0;
             int p = 0;
             for (int x = -tileRadius ; x < tileRadius ; x++) {
                 for (int y = -tileRadius ; y < tileRadius ; y++) {
                     if(checkTile(g2, centerTileX + x, centerTileY + y, centerPixelX, centerPixelY, tileSize, clipBounds)) {
                         int k = x*x + y*y;                      // This is the sort kay
-                        int v = ((x & 0xFF) << 8) | (y & 0xFF); // This the data
+                        int v = ((x & 0xFF) << 8) | (y & 0xFF); // This is the data
                         list[p++] = (k << 16) | v;
-                        count++;
                     }
                 }
             }
-            Arrays.sort(list); // Sort so the tiles nearest the center of the ND will be loaded first
+            Arrays.sort(list);     // Sort so the tiles nearest the center of the ND will be loaded first
+            int start = total - p; // Skip over the zero entries that were sorted to the head
             String str = "";
             p = 0;
-            int start = total - count; // Skip over the zero entries that were sorted to the head
             for (int i = start ; i < total ; i++) {
                 int val = list[i];
                 int x = ((val >> 8) & 0xFF) << 24 >> 24;
@@ -348,13 +346,13 @@ public class JXMap {
 
                 if (DEBUG) {
                     String id = " #" + p + " [" + x + "," + y + "]";
-                    drawCross( g2, centerTileX + x, centerTileY + y, centerPixelX, centerPixelY, tileSize, id, p);
+                    drawCross(g2, centerTileX + x, centerTileY + y, centerPixelX, centerPixelY, tileSize, id, p);
                     str += id;
                     p++;
                 }
             }
             if (DEBUG) {
-                System.out.println("tileRadius = " + tileRadius + " " + count + "/" + total + " =" + str);
+                System.out.println("tileRadius = " + tileRadius + " " + p + "/" + total + " =" + str);
             }
         }
 

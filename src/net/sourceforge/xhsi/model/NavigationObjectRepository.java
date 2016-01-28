@@ -1,22 +1,22 @@
 /**
 * NavigationObjectRepository.java
-* 
+*
 * Manages and provides access to navigation objects (VORs, NDBs, fixes,
 * arpts via various accessors and search methods.
-* 
+*
 * Copyright (C) 2007  Georg Gruetter (gruetter@gmail.com)
 * Copyright (C) 2009-2014  Marc Rogiers (marrog.123@gmail.com)
-* 
+*
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2 
+* as published by the Free Software Foundation; either version 2
 * of the License, or (at your option) any later version.
 *
 * This library is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU Lesser General Public
 * License along with this library; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -34,13 +34,9 @@ public class NavigationObjectRepository {
     public static final float RANGE_MULTIPLIER = 1.25f;
     // let's hope that no other RadioNavigationObject with the same frequency is in that multiplied range
 
-    private ArrayList vors[][];
-    private ArrayList ndbs[][];
-    private ArrayList fixes[][];
-    private ArrayList arpts[][];
-    private ArrayList rwys[][];
-    private HashMap frequencies;
-    private HashMap airports;
+    private HashMap nav_objects = new HashMap();
+    private HashMap frequencies = new HashMap();
+    private HashMap airports = new HashMap();
 
     private static final Logger logger = Logger.getLogger("net.sourceforge.xhsi");
 
@@ -54,11 +50,26 @@ public class NavigationObjectRepository {
         return NavigationObjectRepository.single_instance;
     }
 
+    public static int allocs = 0;
+
+    private static ArrayList new_ArrayList() {
+        allocs++;
+        return new ArrayList();
+    }
+
+
+// ---------------------------------- OLD ----------------------------------
+
+/*
+    private ArrayList vors[][];
+    private ArrayList ndbs[][];
+    private ArrayList fixes[][];
+    private ArrayList arpts[][];
+    private ArrayList rwys[][];
 
     private NavigationObjectRepository() {
         init();
     }
-
 
     public void init() {
 
@@ -72,17 +83,16 @@ public class NavigationObjectRepository {
 
         for (int lat=0;lat<181;lat++) {
             for (int lon=0;lon<361;lon++) {
-                //dmes[lat][lon] = new ArrayList();
-                vors[lat][lon] = new ArrayList();
-                ndbs[lat][lon] = new ArrayList();
-                fixes[lat][lon] = new ArrayList();
-                arpts[lat][lon] = new ArrayList();
-                rwys[lat][lon] = new ArrayList();
+                //dmes[lat][lon] = newArrayList();
+                vors[lat][lon] = new_ArrayList();
+                ndbs[lat][lon] = new_ArrayList();
+                fixes[lat][lon] = new_ArrayList();
+                arpts[lat][lon] = new_ArrayList();
+                rwys[lat][lon] = new_ArrayList();
             }
         }
 
     }
-
 
     public ArrayList get_nav_objects(int type, float lat, float lon) {
         if (type == NavigationObject.NO_TYPE_VOR) {
@@ -96,9 +106,43 @@ public class NavigationObjectRepository {
         } else if (type == NavigationObject.NO_TYPE_RUNWAY) {
             return this.rwys[get_lat_index(lat)][get_lon_index(lon)];
         } else {
-            return new ArrayList();
+            return new_ArrayList();
         }
     }
+
+*/
+
+// ---------------------------------- NEW ----------------------------------
+
+// This saves about 8 MB of heap
+
+    private static HashMap<Integer,ArrayList> objTable = new HashMap<Integer,ArrayList>();
+
+    public ArrayList get_nav_objects(int type, float lat, float lon) {
+        int ilat = get_lat_index(lat);
+        int ilon = get_lon_index(lon);
+
+        if (type < 0 || type > 255) {
+            throw new Error();
+        }
+        if (ilat < 0 || ilat > 180) {
+            throw new Error();
+        }
+        if (ilon < 0 || ilon > 360) {
+            throw new Error();
+        }
+        int key = type << 24 | ilat << 16 | ilon;
+        ArrayList res = objTable.get(key);
+        if (res == null) {
+            res = new_ArrayList();
+            objTable.put(key, res);
+        }
+        return res;
+    }
+
+// ---------------------------------- OLD ----------------------------------
+
+
 
 
     public ArrayList get_nav_objects(int type, NavigationObject nav_object) {
@@ -107,6 +151,8 @@ public class NavigationObjectRepository {
 
 
     public void add_nav_object(NavigationObject nav_object) {
+
+        nav_objects.put(nav_object.name, nav_object);
 
         if (nav_object instanceof RadioNavBeacon) {
             RadioNavBeacon vor = (RadioNavBeacon) nav_object;
@@ -141,6 +187,11 @@ public class NavigationObjectRepository {
 
     }
 
+    public NavigationObject get_nav_object(String name) {
+        return (NavigationObject) nav_objects.get(name);
+    }
+
+
     private void add_freq(float freq, NavigationObject nav_object) {
 
         //Float freq_key = new Float(freq);
@@ -148,7 +199,7 @@ public class NavigationObjectRepository {
         if (this.frequencies.containsKey(freq)) {
             nos = (ArrayList) this.frequencies.get(freq);
         } else {
-            nos = new ArrayList();
+            nos = new_ArrayList();
         }
         nos.add(nav_object);
         this.frequencies.put(freq, nos);
@@ -176,7 +227,7 @@ public class NavigationObjectRepository {
         if (this.frequencies.containsKey(freq_key)) {
             return (ArrayList) this.frequencies.get(freq_key);
         } else {
-            return new ArrayList();
+            return new_ArrayList();
         }
 
     }
@@ -433,13 +484,13 @@ public class NavigationObjectRepository {
     }
 
     public String find_nrst_arpt(float my_lat, float my_lon, float min_rwy, boolean no_hurry) {
-        
+
         // TODO: handle longitudes around the international date line
-        
+
         String nrst_arpt = "";
         double nrst_dist = 99999.0d;
         ArrayList<NavigationObject> navobj_list;
-        
+
         double dist;
         double delta_lon;
         double cos_lat = Math.cos(Math.toRadians(my_lat));
@@ -447,7 +498,7 @@ public class NavigationObjectRepository {
         for (int grid_lat=0; grid_lat<181; grid_lat++) {
             for (int grid_lon=0; grid_lon<361; grid_lon++) {
 
-                navobj_list = arpts[grid_lat][grid_lon];
+                navobj_list = get_nav_objects(NavigationObject.NO_TYPE_AIRPORT, grid_lat, grid_lat); //**NS**
                 int index = 0;
                 while ( index < navobj_list.size() ) {
                     Airport arpt = (Airport)navobj_list.get(index);
@@ -465,11 +516,11 @@ public class NavigationObjectRepository {
             }
             if ( no_hurry ) try { Thread.sleep(5l); } catch(Exception e) {}
         }
-        
+
         logger.fine("NRST ARPT = "+nrst_arpt);
-        
+
         return nrst_arpt;
-        
+
     }
 
     private int get_lat_index(float lat) {

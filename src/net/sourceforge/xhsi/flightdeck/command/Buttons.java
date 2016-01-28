@@ -1412,15 +1412,16 @@ public class Buttons {
     static class cPH extends Button {
         boolean ph;
         void update(Analysis a) {
-            ph = EPI.getInt("sim/cockpit2/ice/ice_pitot_heat_on_pilot", 0) == 1;
-            set(ph);
-            if (!ph) {
+            //ph = EPI.getInt("sim/cockpit2/ice/ice_pitot_heat_on_pilot", 0) == 1;
+            ph =  aircraft.pitot_heat();
+            set(!ph);
+            if (ph) {
                 box(Color.RED, false);
             }
 
         }
         void click() {
-            EPI.sendCommand("cmd once sim/ice/pitot_heat0_" + ((ph) ? "off" : "on"));
+            EPI.sendCommand("cmd once sim/ice/pitot_heat0_" + ((ph) ? "on" : "off"));
         }
     }
 
