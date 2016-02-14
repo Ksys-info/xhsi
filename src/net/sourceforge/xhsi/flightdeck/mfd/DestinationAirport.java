@@ -1,21 +1,21 @@
 /**
 * DestinationAirport.java
-* 
+*
 * raws the airport chart and shows runway, LOC/ILS and COMM info
 * of the destination airport
-* 
+*
 * Copyright (C) 2011-2013  Marc Rogiers (marrog.123@gmail.com)
-* 
+*
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2 
+* as published by the Free Software Foundation; either version 2
 * of the License, or (at your option) any later version.
 *
 * This library is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU Lesser General Public
 * License along with this library; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -81,7 +81,7 @@ public class DestinationAirport extends MFDSubcomponent {
     public static final int RWY_TRNSPARENT = 15;
 
     private DecimalFormat freq_format;
-    
+
     private String source = "";
 
 
@@ -163,9 +163,15 @@ public class DestinationAirport extends MFDSubcomponent {
 
     private String getDestination() {
 
+        boolean arpt_chart_nav_dest = this.preferences.get_arpt_chart_nav_dest();
+
         if (forcedDestination != null) {
-            this.source = "(FORCED)";
-            return forcedDestination;
+            if (forcedDestination.equals("-")) { // Have '-' select the nearest
+                arpt_chart_nav_dest = false;
+            } else {
+                this.source = "(FORCED)";
+                return forcedDestination;
+            }
         }
 
         String dest_arpt_str = "";
@@ -175,14 +181,14 @@ public class DestinationAirport extends MFDSubcomponent {
             // (which is the airport that we are really at in 99.99% of the cases)
             dest_arpt_str = this.aircraft.get_nearest_arpt();
             this.source = "(GND)";
-        } else if ( ! this.preferences.get_arpt_chart_nav_dest() ) {
+        } else if ( ! arpt_chart_nav_dest ) {
             // always display nearest
             dest_arpt_str = this.aircraft.get_nearest_arpt();
             this.source = "(NRST)";
         } else {
 
             // search for a destination airport that corresponds to the nav-source
-            
+
             if ( dest_arpt_str.equals("") ) {
                 // if not, get the airport of the LOC/ILS that we are we tuned to, and selected as NAV source
                 dest_arpt_str = get_nav_dest();
@@ -198,7 +204,7 @@ public class DestinationAirport extends MFDSubcomponent {
                 dest_arpt_str = this.aircraft.get_nearest_arpt();
                 this.source = "(NRST)";
             }
-            
+
         }
 
         return dest_arpt_str;
@@ -227,7 +233,7 @@ public class DestinationAirport extends MFDSubcomponent {
             g2.fillRect(mfd_gc.panel_rect.x, mfd_gc.panel_rect.y, mfd_gc.panel_rect.width, mfd_gc.panel_rect.height);
             g2.setColor(text);
 
-        
+
             int chart_x;
             int chart_w;
             int chart_y;

@@ -49,9 +49,17 @@ import java.text.DecimalFormatSymbols;
 import java.util.ArrayList;
 import java.util.logging.Logger;
 //import java.util.HashMap;
-
+import java.util.Map;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
 import net.sourceforge.xhsi.XHSISettings;
 //import net.sourceforge.xhsi.XHSIPreferences;
+
+import java.util.Properties;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 
 import net.sourceforge.xhsi.model.Airport;
 import net.sourceforge.xhsi.model.Avionics;
@@ -119,7 +127,6 @@ public class MovingMap extends NDSubcomponent {
 
     private static TaxiChart taxi = new TaxiChart();
 
-
    //
    // -------------------------------- Projection --------------------------------
    //
@@ -172,7 +179,7 @@ public class MovingMap extends NDSubcomponent {
           //System.out.println("-------------- drawLine "+x1+" "+y1+" "+x2+" "+y2);
         }
 
-        public void drawLineTo(Graphics2D g2, float lat, float lon, boolean zigzag) {
+        protected void drawLineTo(Graphics2D g2, float lat, float lon, boolean zigzag) {
             if (!zigzag) {
                 drawLineTo(g2, lat, lon);
             } else {
@@ -181,12 +188,12 @@ public class MovingMap extends NDSubcomponent {
             }
         }
 
-        public void drawLineTo(Graphics2D g2, float lat, float lon) {
+        protected void drawLineTo(Graphics2D g2, float lat, float lon) {
             Point p2 = geoToPixelCheck(lat, lon);
             drawLine(g2, getX(), getY(), p2.x, p2.y);
         }
 
-        public void drawZigZag(Graphics2D g2, Point p1, Point p2) {
+        protected void drawZigZag(Graphics2D g2, Point p1, Point p2) {
             AffineTransform orig = g2.getTransform();
             int x   = p1.x;
             int y   = p1.y;
@@ -255,27 +262,31 @@ public class MovingMap extends NDSubcomponent {
 
     private class WebMercatorProjection extends Projection {
 
-        private final double oneRadianInLatitudePixels  = pixels_per_deg_lat * 360 / Math.toRadians(360);
+        private final double oneRadianInLatitudePixels = pixels_per_deg_lat * 360 / Math.toRadians(360);
 
         public WebMercatorProjection(float lat_max, float lat_min, float lon_max, float lon_min) {
             super(lat_max, lat_min, lon_max, lon_min);
         }
 
+        private double normalizeLonDegrees(double n) {
+            return (3*180 + n) % (2*180) - 180;
+        }
+
         protected Point geoToPixel(float lat, float lon) {
-            double e = Math.sin((lat - center_lat) * Math.toRadians(1)); // Radians from screen center point
+            double e = Math.sin((lat - center_lat) * Math.toRadians(1)); // Radians up/down from screen center point
             if (e > 0.9999d) {
                 e = 0.9999d;
             } else if (e < -0.9999d) {
                 e = -0.9999d;
             }
-            double dx = (lon - center_lon) * pixels_per_deg_lon;
             double dy = 0.5d * Math.log((1.0d + e) / (1.0d - e)) * -1.0d * oneRadianInLatitudePixels;
+            double dx = normalizeLonDegrees(lon - center_lon) * pixels_per_deg_lon;
             int x = (int)Math.round(nd_gc.map_center_x + dx);
             int y = (int)Math.round(nd_gc.map_center_y + dy);
             return new Point(x, y);
         }
 
-        public void drawLineTo(Graphics2D g2, float lat, float lon) {
+        protected void drawLineTo(Graphics2D g2, float lat, float lon) {
             ArrayList<Geo> geos = new ArrayList<Geo>();
             Geo p0 = Geo.makeGeoDegrees(point_lat, point_lon);
             Geo p1 = Geo.makeGeoDegrees(lat, lon);
@@ -287,7 +298,7 @@ public class MovingMap extends NDSubcomponent {
             }
         }
 
-        public void addPoints(ArrayList<Geo> geos, Geo p0, Geo p1) {
+        private void addPoints(ArrayList<Geo> geos, Geo p0, Geo p1) {
             double distance = p0.distance(p1);
             if (distance > Math.toRadians(1)) { // Decrease this number to add detail
                 Geo pc = p0.midPoint(p1);
@@ -307,11 +318,8 @@ public class MovingMap extends NDSubcomponent {
         }
     }
 
-    /**
-     * This class is derived from "http://www.movable-type.co.uk/scripts/latlong.html"
-     * and replicates the interface used in "https://github.com/openmap-java/openmap"
-     */
-    private static class Geo {
+/*
+    public static class Geo {
         final double lat;
         final double lon;
 
@@ -354,13 +362,76 @@ public class MovingMap extends NDSubcomponent {
             double lam_3 = (3 * Math.PI + temp) % (2 * Math.PI) - Math.PI;
             return new Geo(Math.toDegrees(phi_3), Math.toDegrees(lam_3));
         }
-    }
 
+        Geo offset(double distance, double bearing) {
+            double phi_1 = Math.toRadians(lat);
+            double lam_1 = Math.toRadians(lon);
+            double phi_2 = Math.asin(Math.sin(phi_1) * Math.cos(distance) + Math.cos(phi_1) * Math.sin(distance) * Math.cos(bearing));
+            double lam_2 = lam_1 + Math.atan2(
+                                               Math.sin(bearing) * Math.sin(distance) * Math.cos(phi_1),
+                                               Math.cos(distance) - Math.sin(phi_1) * Math.sin(phi_2)
+                                             );
+            return new Geo(Math.toDegrees(phi_2), Math.toDegrees(lam_2));
+        }
+    }
+*/
+
+    /**
+     * This class is derived from "http://www.movable-type.co.uk/scripts/latlong.html"
+     * and replicates the interface used in "https://github.com/openmap-java/openmap"
+     */
+    public static class Geo {
+        final double phi;
+        final double lam;
+        final double sin_phi;
+        final double cos_phi;
+
+        public static Geo makeGeoDegrees(double lat, double lon) {
+            return new Geo(Math.toRadians(lat), Math.toRadians(lon));
+        }
+
+        private Geo(double phi, double lam) {
+            this.phi = phi;
+            this.lam = lam;
+            this.sin_phi = Math.sin(phi);
+            this.cos_phi = Math.cos(phi);
+        }
+
+        public double getLatitude() {
+            return Math.toDegrees(phi);
+        }
+
+        public double getLongitude() {
+            return Math.toDegrees(lam);
+        }
+
+        public double distance(Geo g2) {
+            return Math.acos(sin_phi * g2.sin_phi + cos_phi * g2.cos_phi * Math.cos(g2.lam - lam));
+        }
+
+        public Geo midPoint(Geo g2) {
+            double Bx    = g2.cos_phi * Math.cos(g2.lam - lam);
+            double By    = g2.cos_phi * Math.sin(g2.lam - lam);
+            double phi_3 = Math.atan2(sin_phi + g2.sin_phi, Math.hypot(cos_phi + Bx, By));
+            double temp  = lam + Math.atan2(By, cos_phi + Bx);
+            double lam_3 = (3*Math.PI + temp) % (2*Math.PI) - Math.PI;
+            return new Geo(phi_3, lam_3);
+        }
+
+        public Geo offset(double distance, double bearing) {
+            double sin_distance = Math.sin(distance);
+            double cos_distance = Math.cos(distance);
+            double sin_bearing  = Math.sin(bearing);
+            double cos_bearing  = Math.cos(bearing);
+            double phi_2 = Math.asin(sin_phi * cos_distance + cos_phi * sin_distance * cos_bearing);
+            double lam_2 = lam + Math.atan2(sin_bearing * sin_distance * cos_phi, cos_distance - sin_phi * Math.sin(phi_2));
+            return new Geo(phi_2, lam_2);
+        }
+    }
 
    //
    // ---------------------------------------------------------------------------------------
    //
-
 
     private Projection map_projection = null;
 
@@ -1279,6 +1350,8 @@ public class MovingMap extends NDSubcomponent {
 
 */
             draw_FMS_route(g2);
+        } else /*if (!fms.is_active())*/ {
+            kill_FMS_route(g2);
         }
 
         //g2.setTransform(original_at);
@@ -1959,80 +2032,140 @@ public class MovingMap extends NDSubcomponent {
 // ------------------------------------------- NEW -------------------------------------------------
 //
 
-    private final static boolean DRAW_FLOWN_LEGS = false;
+    private final static boolean DRAW_FLOWN_LEGS = Approach.DEBUG;
+    private final Approach approach = new Approach(this);
 
     private void draw_FMS_route(Graphics2D g2) {
-        float[] lastPoint = new float[] {center_lat, center_lon};
-        boolean legHasBeenFlown = true;
-        int count = fms.get_nb_of_entries();
-        for (int i = 0 ; i < count ; i++) {
-            FMSEntry entry = fms.get_entry(i);
-            if (entry != null) {
-                if (entry.active) {
-                    legHasBeenFlown = false;
+        try {
+            float[] lastPoint = approach.init();
+            boolean legHasBeenFlown = true;
+            int count = fms.get_nb_of_entries();
+            for (int i = 0 ; i < count ; i++) {
+                FMSEntry entry = fms.get_entry(i);
+                if (entry != null) {
+                    if (entry.active) {
+                        legHasBeenFlown = false;
+                    }
+                    lastPoint = draw_FMS_entry(g2, entry, legHasBeenFlown, lastPoint);
                 }
-                lastPoint = draw_FMS_entry(g2, entry, legHasBeenFlown, lastPoint);
             }
+        } finally {
+            approach.done();
         }
+    }
+
+    private void kill_FMS_route(Graphics2D g2) {
+        approach.kill();
     }
 
     private float[] draw_FMS_entry(Graphics2D g2, FMSEntry entry, boolean legHasBeenFlown, float[] lastPoint) {
-        float[] nextPoint = new float[] {entry.lat, entry.lon};
+        float[] entryLatLon = new float[] {entry.lat, entry.lon};
         String navId = avionics.gps_nav_id();
         boolean entryEqualsNavId = entry.name.equals(navId);
         boolean active = entry.active || entryEqualsNavId;
-      //System.out.println(""+entry.index + " type="+entry.type+": flown=" + legHasBeenFlown + " name=" + entry.name + (active ? "*" : "") + (entryEqualsNavId ? "+" : " (navid="+avionics.gps_nav_id()+")"));
 
-        if (active || !legHasBeenFlown || DRAW_FLOWN_LEGS) {
-            boolean certain = true;
-            /*
-             * When the X-Plane Garmin GPS is directing an approach, only the
-             * destination airport is available. The ND display can be enhanced
-             * by looking up the current GPS nav id and displaying that as the
-             * next waypoint (which it is), and then joining the end of this to
-             * the final airport with a zigzag line to indicate the uncertainly
-             * of what may happen between these points.
-             */
-            if (active && !entryEqualsNavId) {
-                NavigationObject nobj = nor.get_nav_object(navId);
-                if (nobj != null) {
-                    float[] navPoint = new float[] {nobj.lat, nobj.lon};
-                    lastPoint = draw_FMS_line(g2, active, legHasBeenFlown, true, lastPoint, navPoint);
-                    draw_FMS_detail(g2, nobj.name);
-                }
-                certain = false;
+        if (Approach.DEBUG) {
+            Approach.out.println("FMS["+entry.index + "]: type="+entry.type+": flown=" + legHasBeenFlown + " name=" + entry.name + (active ? "*" : "") + (entryEqualsNavId ? "+" : " (navid="+avionics.gps_nav_id()+")"));
+            //Approach.out.println("              lat="+entry.lat+" lon="+entry.lon+" altitude="+entry.altitude);
+        }
+
+        /*
+         * When the X-Plane Garmin GPS is directing an approach, this can
+         * be detected by the factbthat the FMS target is not equal to the
+         * GPS target. In this case iit is likely that the FMS target will
+         * be tyhe destination airpport, but for some strange reason this
+         * is not always the case (when one activates an approach the FMS
+         * target does not change). So the strategy used here is to assume
+         * the aircraft is flying a (Garmin) approach if FMS target != GPS
+         * target _OR_ an approach has already in progress. This is worked
+         * out in Approach.getPath()
+         */
+        ArrayList<Approach.ApproachState.Leg> legs = (active) ? approach.getPath(entry.name, navId) : null;
+        if (legs != null) {
+            legHasBeenFlown = true;
+            if (Approach.DEBUG) {
+                Approach.out.println("MovingMap currentLeg = " + approach.getCurrentLeg());
             }
-            draw_FMS_line(g2, active, legHasBeenFlown, certain, lastPoint, nextPoint);
-            draw_FMS_detail(g2, entry, !certain);
-        }
-        return nextPoint;
-    }
+            float[] endPoint = entryLatLon;
+            Object[] activeLeg = null;
+            for (int i = 0 ; i < legs.size() ; i++) {
+                Approach.ApproachState.Leg leg = legs.get(i);
+                boolean legIsActive = (i == approach.getCurrentLeg());
+                if (legIsActive) {
+                    legHasBeenFlown = false;
+                }
+                endPoint = leg.getLocation(legIsActive);
+                if (Approach.DEBUG) {
+                    Approach.out.print(leg.isCertain   ? "  " : "~ ")
+                                .print(legHasBeenFlown ? "x" : " ")
+                                .print(legIsActive     ? "*" : " ")
+                                .print("leg:"+i+" ").print(leg)
+                                .print(" lastPt=").print(lastPoint)
+                                .print(" endPt=").print(endPoint)
+                                .println();
+                }
 
-    private float[] draw_FMS_line(Graphics2D g2, boolean active, boolean legHasBeenFlown, boolean certain, float[] lastPoint, float[] nextPoint) {
-        if (active && certain) {
-            g2.setColor(nd_gc.fmc_active_color);
-        } else if (!legHasBeenFlown) {
-            g2.setColor(nd_gc.fmc_other_color);
+                if (draw_FMS_line(g2, legIsActive, legHasBeenFlown, leg.isCertain, lastPoint, endPoint)) {
+                    draw_FMS_detail0(g2, leg.navId, 0, 0, 0, false, legIsActive);
+                }
+                if (legIsActive) {
+                    activeLeg = new Object[] {leg.isCertain, lastPoint, endPoint, leg.navId};
+                }
+                lastPoint = endPoint;
+            }
+            /*
+             * Unfortunatly there are appoaches where the missed approach section runs
+             * exactly back along the same waypoints that were used in the approach.
+             * So, this hack is to draw the active leg a second time after the missed approach
+             * so it will show up again in red. The alternative (which the X-Plane GNS
+             * 530 also seems to exibit) is just too confising.
+             */
+            if (activeLeg != null) {
+                boolean legActive = true;
+                boolean hasBeenFlown = false;
+                boolean certain = (Boolean)activeLeg[0];
+                float[] lastPt = (float[])activeLeg[1];
+                float[] endPt = (float[])activeLeg[2];
+                String  nid  = (String)activeLeg[3];
+                if (draw_FMS_line(g2, legActive, hasBeenFlown, certain, lastPt, endPt)) {
+                    draw_FMS_detail0(g2, nid, 0, 0, 0, false, legActive);
+                }
+            }
+            return endPoint;
         } else {
-            g2.setColor(nd_gc.fmc_other_color.darker());
+            if (draw_FMS_line(g2, active, legHasBeenFlown, true, lastPoint, entryLatLon)) {
+                draw_FMS_detail(g2, entry, !active);
+            }
+            return entryLatLon;
         }
-        Stroke original_stroke = g2.getStroke();
-        g2.setStroke(new BasicStroke(1.5f));
-        map_projection.setPoint(nextPoint[0], nextPoint[1]);
-        map_projection.drawLineTo(g2, lastPoint[0], lastPoint[1], !certain);
-        g2.setStroke(original_stroke);
-        return nextPoint;
     }
 
-    private void draw_FMS_detail(Graphics2D g2, String name) {
-        draw_FMS_detail0(g2, name, 0, 0, 0, false, true);
+    boolean draw_FMS_line(Graphics2D g2, boolean active, boolean legHasBeenFlown, boolean certain, float[] lastPoint, float[] nextPoint) {
+        if (lastPoint == null || nextPoint == null || (legHasBeenFlown && !DRAW_FLOWN_LEGS)) {
+            return false;
+        } else {
+            if (active) {
+                g2.setColor(nd_gc.fmc_active_color);
+            } else if (!legHasBeenFlown) {
+                g2.setColor(nd_gc.fmc_other_color);
+            } else {
+              //g2.setColor(nd_gc.fmc_other_color.darker().darker());
+                g2.setColor(Color.BLUE);
+            }
+            Stroke original_stroke = g2.getStroke();
+            g2.setStroke(new BasicStroke(1.5f));
+            map_projection.setPoint(nextPoint[0], nextPoint[1]);
+            map_projection.drawLineTo(g2, lastPoint[0], lastPoint[1], !certain);
+            g2.setStroke(original_stroke);
+            return true;
+        }
     }
 
 //
 // -------------------------------------------------------------------------------------------------
 //
 
-    private void draw_FMS_detail(Graphics2D g2, FMSEntry entry, boolean override_active) {
+    void draw_FMS_detail(Graphics2D g2, FMSEntry entry, boolean override_active) {
         String  entry_name      = entry.name;
         int     entry_type      = entry.type;
         int     entry_altitude  = entry.altitude;
@@ -2042,16 +2175,15 @@ public class MovingMap extends NDSubcomponent {
         draw_FMS_detail0(g2, entry_name, entry_type, entry_altitude, entry_total_ete, entry_displayed, entry_active && !override_active);
     }
 
-    private void draw_FMS_detail0(Graphics2D g2,
-                                  String  entry_name,
-                                  int entry_type,
-                                  int entry_altitude,
-                                  float entry_total_ete,
-                                  boolean entry_displayed,
-                                  boolean entry_active) {
+    void draw_FMS_detail0(Graphics2D g2,
+                          String entry_name,
+                          int entry_type,
+                          int entry_altitude,
+                          float entry_total_ete,
+                          boolean entry_displayed,
+                          boolean entry_active) {
 
         if (map_projection.pointIsVisible()) {
-
             int x = map_projection.getX();
             int y = map_projection.getY();
 

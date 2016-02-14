@@ -1980,15 +1980,15 @@ public class XPlaneAvionics implements Avionics, Observer {
 
     }
 
-    public void send_ap_heading(int value) {
+    public void send_ap_heading(float value) {
 
-        udp_sender.sendDataPoint( XPlaneSimDataRepository.SIM_COCKPIT_AUTOPILOT_HEADING_MAG, (float) value );
+        udp_sender.sendDataPoint( XPlaneSimDataRepository.SIM_COCKPIT_AUTOPILOT_HEADING_MAG, value );
 
     }
 
-    public void send_ap_airspeed(int value) {
+    public void send_ap_airspeed(float value) {
 
-        udp_sender.sendDataPoint( XPlaneSimDataRepository.SIM_COCKPIT_AUTOPILOT_AIRSPEED, (float) value );
+        udp_sender.sendDataPoint( XPlaneSimDataRepository.SIM_COCKPIT_AUTOPILOT_AIRSPEED, value );
 
     }
 

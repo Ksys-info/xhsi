@@ -1209,10 +1209,28 @@ public class Buttons {
 
     static class nTHR extends Number {
         void update(Analysis a) {
-            set(a.ap_thr);
+            float speed = avionics.autopilot_speed();
+            set(getMachMode() ? String.format("%.3f", speed) : Integer.toString((int)speed));
         }
-        void click(int value) {
-            avionics.send_ap_airspeed(addRounded(avionics.autopilot_speed(), value * 5));
+
+        void click(int value, boolean right, boolean repeat) {              // Up & down buttons
+            float speed = avionics.autopilot_speed();
+            if (getMachMode()) {
+                speed += (right ? 0.01f : 0.001f) * value;
+            } else {
+                speed = addRounded(speed, (right ? 50 : 5) * value);
+            }
+            avionics.send_ap_airspeed(speed);
+        }
+
+        void click(boolean right) {                                         // Number display
+            if (right) {
+                avionics.send_ap_key_press(1); // toggle mach mode
+            }
+        }
+
+        boolean getMachMode() {
+            return avionics.autopilot_speed_is_mach();
         }
     }
 
@@ -1393,7 +1411,8 @@ public class Buttons {
 
     static class cBRK extends Button {
         void update(Analysis a) {
-            float brk = EPI.getFloat("sim/flightmodel/controls/parkbrake", 0);
+            //float brk = EPI.getFloat("sim/flightmodel/controls/parkbrake", 0);
+            float brk = EPI.getFloat("sim/cockpit2/controls/parking_brake_ratio", 0);
             set(brk == 1);
             if (brk > 0) {
                 box(Color.RED, false);

@@ -34,7 +34,9 @@ public class NavigationObjectRepository {
     public static final float RANGE_MULTIPLIER = 1.25f;
     // let's hope that no other RadioNavigationObject with the same frequency is in that multiplied range
 
-    private HashMap nav_objects = new HashMap();
+    public static final boolean RECORD_NAV_OBJECTS = false;
+    private HashMap nav_objects = RECORD_NAV_OBJECTS ? new HashMap() : null;
+
     private HashMap frequencies = new HashMap();
     private HashMap airports = new HashMap();
 
@@ -140,20 +142,21 @@ public class NavigationObjectRepository {
         return res;
     }
 
-// ---------------------------------- OLD ----------------------------------
+    public NavigationObject get_nav_object(String name) {
+        return RECORD_NAV_OBJECTS ? (NavigationObject) nav_objects.get(name) : null;
+    }
 
-
+// -------------------------------------------------------------------------
 
 
     public ArrayList get_nav_objects(int type, NavigationObject nav_object) {
         return get_nav_objects(type, nav_object.lat, nav_object.lon);
     }
 
-
     public void add_nav_object(NavigationObject nav_object) {
-
-        nav_objects.put(nav_object.name, nav_object);
-
+        if (RECORD_NAV_OBJECTS) {
+            nav_objects.put(nav_object.name, nav_object);
+        }
         if (nav_object instanceof RadioNavBeacon) {
             RadioNavBeacon vor = (RadioNavBeacon) nav_object;
             if (vor.type == RadioNavBeacon.TYPE_NDB) {
@@ -185,10 +188,6 @@ public class NavigationObjectRepository {
             }
         }
 
-    }
-
-    public NavigationObject get_nav_object(String name) {
-        return (NavigationObject) nav_objects.get(name);
     }
 
 

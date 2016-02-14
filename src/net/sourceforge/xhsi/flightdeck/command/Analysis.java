@@ -43,7 +43,6 @@ public class Analysis extends SuperAnalysis {
     int     ap_alt         = Math.round(avionics.autopilot_altitude());
     int     ap_vvi         = Math.round(avionics.autopilot_vv());
     int     ap_hdg         = Math.round(avionics.heading_bug());
-    int     ap_thr         = Math.round(avionics.autopilot_speed());
     int     h_src          = avionics.hsi_source();
     int     mp_mode        = avionics.map_mode();
     int     mp_smode       = avionics.map_submode();

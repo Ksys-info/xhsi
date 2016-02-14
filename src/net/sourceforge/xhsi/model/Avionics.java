@@ -1,21 +1,21 @@
 /**
 * Avionics.java
-* 
+*
 * Model for an aircraft's avionics systems
-* 
+*
 * Copyright (C) 2007  Georg Gruetter (gruetter@gmail.com)
 * Copyright (C) 2009  Marc Rogiers (marrog.123@gmail.com)
-* 
+*
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
-* as published by the Free Software Foundation; either version 2 
+* as published by the Free Software Foundation; either version 2
 * of the License, or (at your option) any later version.
 *
 * This library is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU Lesser General Public
 * License along with this library; if not, write to the Free Software
 * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
@@ -25,8 +25,8 @@ package net.sourceforge.xhsi.model;
 import net.sourceforge.xhsi.model.xplane.XPlaneSimDataRepository;
 
 public interface Avionics {
-	
-	public enum InstrumentSide { PILOT, COPILOT, INSTRUCTOR };
+
+    public enum InstrumentSide { PILOT, COPILOT, INSTRUCTOR };
 
     public static final int STYLE_BOEING = 0;
     public static final int STYLE_AIRBUS = 1;
@@ -79,7 +79,7 @@ public interface Avionics {
     public static final int MFD_MODE_FCTL = 13;
     public static final int MFD_MODE_SYS = 14; // SYS on Boeing, CRUIZE on Airbus
     public static final int MFD_MODE_STATUS = 15;
-    
+
     public static final int CDU_SOURCE_AIRCRAFT_OR_DUMMY = 0;
     public static final int CDU_SOURCE_XFMC = 1;
     public static final int CDU_SOURCE_UFMC = 2;
@@ -101,7 +101,7 @@ public interface Avionics {
     public static final int RADIO_COM2_STDBY = -6;
     public static final int RADIO_COM2_STDBY_833 = -106;
 
-    
+
     /**
      * @return int - general instrument style STYLE_BOEING, STYLE_AIRBUS
      */
@@ -133,7 +133,7 @@ public interface Avionics {
     public int map_range_index();
     public int map_range_index(InstrumentSide side);
 
-    
+
     /**
      * @return int - selected range of map display in NM
      */
@@ -157,7 +157,7 @@ public interface Avionics {
      */
     public int map_submode();
     public int map_submode(InstrumentSide side);
-    
+
     /**
      * @return int - HSI source selector - either HSI_SOURCE_NAV1, HSI_SOURCE_NAV2 or HSI_SOURCE_GPS
      */
@@ -347,25 +347,25 @@ public interface Avionics {
      */
     public boolean com1_is_833();
 
-    
+
     /**
      * @return boolean - COM1 STANDBY is tuned to a 8.33kHz spaced channel
      */
     public boolean com1_standby_is_833();
 
-    
+
     /**
      * @return boolean - COM2 is tuned to a 8.33kHz spaced channel
      */
     public boolean com2_is_833();
 
-    
+
     /**
      * @return boolean - COM2 STANDBY is tuned to a 8.33kHz spaced channel
      */
     public boolean com2_standby_is_833();
 
-    
+
     /**
      * @return boolean - Contacting ATC
      */
@@ -375,43 +375,43 @@ public interface Avionics {
      * @return boolean - Receiving from PilotEdge
      */
     public boolean pilotedge_rx();
-    
-    
+
+
     /**
      * @return int - Selected radio on the RTU
      */
     public int rtu_selected_radio();
 
-    
+
     /**
      * @return int - MFD mode (0=arpt, 1=fpln, 2=eicas)
      */
     public int get_mfd_mode();
 
-    
+
     /**
      * @return int - CDU source (0=aircraft's custom FMC or dummy, 1=X-FMC, 2=UFMCS/X737FMC,)
      */
     public int get_cdu_source();
-    
+
     /**
      * @return int - 0=LbFt, 1=Nm, 2=percent
      */
     public int get_trq_scale();
-    
-    
+
+
     /**
      * @return int - 0=Kg, 1=Lb, 2=USG, 3=Liter
      */
     public int get_fuel_units();
-    
-    
+
+
     /**
-     * @return float 
+     * @return float
      */
     public float fuel_multiplier();
 
-    
+
     /**
      * @return int - Engine type (0=N1, 1=EPR, 2=TRQ, 3=MAP)
      */
@@ -419,7 +419,7 @@ public interface Avionics {
 
     /**
      * TODO: constants for autopilot states need to be defined
-     * 
+     *
      * @return int - bitmask for autopilot state
      */
     public int autopilot_state();
@@ -563,7 +563,7 @@ public interface Avionics {
     public boolean ap_roll_on();
 
     public boolean ap_pitch_on();
-    
+
     /**
      * @return Aircraft - reference to aircraft model class to which avionics belongs
      */
@@ -594,13 +594,13 @@ public interface Avionics {
      */
     public boolean transponder_ident();
 
-    
+
     /**
      * @return boolean - clock show UTC
      */
     public boolean clock_shows_utc();
-    
-    
+
+
     /**
      * @return boolean - true is show metric altitude on PFD
      */
@@ -610,13 +610,13 @@ public interface Avionics {
      */
     public boolean pfd_show_baro_hpa();
     public boolean pfd_show_baro_hpa(InstrumentSide side);
-    	   
-    
+
+
     /**
      * @return boolean - receiving CL30 data
      */
     public boolean is_cl30();
-    
+
     /**
      * @return int - CL30's sim/custom/xap/refspds
      */
@@ -633,29 +633,29 @@ public interface Avionics {
 
     public boolean is_qpac();
     public int qpac_version();
-    
+
     // Autopilot
     /**
      * @return boolean - QPAC Autopilot 1 or 2 engaged
-     */    
+     */
     public boolean qpac_ap1();
     public boolean qpac_ap2();
-    
+
     /**
      * @return int - QPAC Autopilot phase
-     */    
+     */
     public int qpac_ap_phase();
-    
+
     public int qpac_presel_crz();
     public int qpac_presel_clb();
     public float qpac_presel_mach();
-  
+
     public int qpac_ap_vertical_mode();
     public int qpac_ap_vertical_armed();
 
     public int qpac_ap_lateral_mode();
     public int qpac_ap_lateral_armed();
-    
+
     public int qpac_npa_valid();
     public int qpac_npa_no_points();
     public boolean qpac_loc_illuminated();
@@ -672,7 +672,7 @@ public interface Avionics {
     public boolean qpac_fcu_spd_managed();
     public boolean qpac_fcu_hdg_dashed();
     public boolean qpac_fcu_hdg_managed();
-    public boolean qpac_fcu_alt_managed();    
+    public boolean qpac_fcu_alt_managed();
     // Auto-Thrust
     public int qpac_athr_mode();
     public int qpac_athr_mode2();
@@ -680,7 +680,7 @@ public interface Avionics {
     public int qpac_thr_lever_mode();
     public int qpac_fma_thr_warning();
     public int qpac_flex_temp();
-    
+
     // ILS Sig and Deviation Capt. and FO
     public boolean qpac_ils_on();
     public boolean qpac_ils_on(InstrumentSide side);
@@ -692,11 +692,11 @@ public interface Avionics {
     public float qpac_ils_freq();
     public String qpac_ils_id();
     public float qpac_ils_dme();
-    
+
     // FD
     /**
      * @return boolean - QPAC Flight director 1 or 2 engaged
-     */  
+     */
     public boolean qpac_fd1();
     public boolean qpac_fd2();
     public boolean qpac_fd_on();
@@ -709,34 +709,34 @@ public interface Avionics {
     public float qpac_fd_ver_bar();
     public float qpac_fd_hor_bar();
     public float qpac_fd_yaw_bar();
-    
+
     // Baro
     public boolean qpac_baro_std();
     public boolean qpac_baro_std(InstrumentSide side);
     public boolean qpac_baro_unit();
     public boolean qpac_baro_unit(InstrumentSide side);
     public boolean qpac_baro_hide();
-      
+
     // V Speeds
     public float qpac_v1_value();
     public int qpac_v1();
     public int qpac_vr();
     public int qpac_vmo();
-    public int qpac_vls();  
+    public int qpac_vls();
     public int qpac_vf();
     public int qpac_vs();
     public int qpac_v_green_dot();
     public int qpac_alpha_prot();
     public int qpac_alpha_max();
-    
+
     // Failures
     public float qpac_failures();
     // Flight controls computers
     /**
      * @return boolean - True is FFC #pos is active ; False if failed
-     */    
+     */
     public boolean qpac_fcc(int pos);
-    
+
     // JARDesign A320 Neo
     public boolean is_jar_a320neo();
     // Baro
@@ -764,14 +764,14 @@ public interface Avionics {
     public boolean jar_a320neo_fcu_spd_managed();
     public boolean jar_a320neo_fcu_hdg_dashed();
     public boolean jar_a320neo_fcu_hdg_managed();
-    public boolean jar_a320neo_fcu_alt_managed();    
+    public boolean jar_a320neo_fcu_alt_managed();
     // Auto-Thrust
     public int jar_a320neo_athr_mode();
     public int jar_a320neo_thr_mode();
     public int jar_a320neo_athr_limited();
     public int jar_a320neo_thr_lever_mode();
     public int jar_a320neo_fma_thr_warning();
-    public int jar_a320neo_flex_temp();   
+    public int jar_a320neo_flex_temp();
     // V-Speeds
     public int jar_a320neo_v1();
     public int jar_a320neo_vr();
@@ -782,8 +782,8 @@ public interface Avionics {
     public int jar_a320neo_v_green_dot();
     public int jar_a320neo_alpha_prot();
     public int jar_a320neo_alpha_max();
-    
-        
+
+
     // UFMC
     public boolean has_ufmc();
 
@@ -822,7 +822,7 @@ public interface Avionics {
     public void set_fuel_units(int new_units);
 
     public void set_engine_type(int new_type);
-    
+
     public void set_range_index(int new_range_index);
 
     public void set_xpdr_mode(int new_xpdr_mode);
@@ -844,7 +844,7 @@ public interface Avionics {
     public void set_show_pos(boolean new_pos);
 
     public void set_show_data(boolean new_data);
-    
+
     public void set_mfd_mode(int new_mode);
 
     public void set_cdu_source(int new_source);
@@ -855,9 +855,9 @@ public interface Avionics {
 
     public void send_ap_vv(int value);
 
-    public void send_ap_heading(int value);
+    public void send_ap_heading(float value);
 
-    public void send_ap_airspeed(int value);
+    public void send_ap_airspeed(float value);
 
     public void sendDataPoint(int key, int value);
 
@@ -866,29 +866,29 @@ public interface Avionics {
     // Failures
     public enum FailedElement { PFD_ATTITUDE, PFD_ALTITUDE, PFD_AIR_SPEED, PFD_HEADING, PFD_TURN, PFD_VSI };
     public enum FailureMode { WORKING, FAIL_MEAN_TIME, FAIL_TIME, FAIL_SPD, FAIL_ALT, FAIL_KEY, INOPERATIVE  };
-  
+
     public FailureMode failure_mode(FailedElement element);
-    public void set_failure(FailedElement element, FailureMode mode);    
-    
+    public void set_failure(FailedElement element, FailureMode mode);
+
     /**
      * @return boolean - True if attitude valid
-     */  
+     */
     public boolean att_valid ();
 
     /**
      * @return boolean - True if heading valid
-     */  
+     */
     public boolean hdg_valid ();
 
     /**
-     * @return boolean - True if IAS valid 
-     */  
+     * @return boolean - True if IAS valid
+     */
     public boolean ias_valid ();
 
     /**
-     * @return boolean - True if Altitude valid 
-     */  
+     * @return boolean - True if Altitude valid
+     */
     public boolean alt_valid ();
-    
+
 
 }
