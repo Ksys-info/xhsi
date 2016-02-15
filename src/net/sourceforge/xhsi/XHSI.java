@@ -452,7 +452,7 @@ public class XHSI implements ActionListener {
         this.preferences.add_subsciption(XHSISettings.get_instance(), XHSIPreferences.PREF_AIRBUS_MODES);
 
         // load AptNav databases
-        AptNavXP900DatNavigationObjectBuilder nob = new AptNavXP900DatNavigationObjectBuilder(this.preferences.get_preference(XHSIPreferences.PREF_APTNAV_DIR));
+        AptNavXP900DatNavigationObjectBuilder nob = new AptNavXP900DatNavigationObjectBuilder();
         this.preferences.add_subsciption(nob, XHSIPreferences.PREF_APTNAV_DIR);
         nob.set_progress_observer((ProgressObserver) this.nob_progress_dialog);
         if ( ! XHSIStatus.nav_db_status.equals(XHSIStatus.STATUS_NAV_DB_NOT_FOUND) ) {

@@ -265,6 +265,15 @@ public class XHSIPreferences {
      */
     private static XHSIPreferences single_instance = null;
 
+    /**
+     * The current aptnav directrory
+     */
+    private static String aptnav_directory;
+
+    /**
+     * The current default data directrory
+     */
+    private static String default_data_directory;
 
     /**
      * true if unsaved changes are present
@@ -1384,19 +1393,24 @@ public class XHSIPreferences {
      *
      */
     private void validate_preferences() {
+        aptnav_directory       = preferences.getProperty(PREF_APTNAV_DIR);
+        default_data_directory = (new File(aptnav_directory, "Custom Data/earth_nav.dat").exists()) // use earth_nav.dat as a solid test case
+                               ? aptnav_directory + "/Custom Data"
+                               : aptnav_directory + "/Resources/default data";
+
         // verify that X-Plane directory exists
-        if (new File(this.preferences.getProperty(PREF_APTNAV_DIR)).exists() == false) {
+        if (new File(aptnav_directory).exists() == false) {
             logger.severe("AptNav Resources directory not found. Will not read navigation data!");
             XHSIStatus.nav_db_status = XHSIStatus.STATUS_NAV_DB_NOT_FOUND;
         } else if (
-                ! ( new File(this.preferences.getProperty(PREF_APTNAV_DIR) + "/Resources/default data/earth_nav.dat").exists() ||
-                    new File(this.preferences.getProperty(PREF_APTNAV_DIR) + "/earth_nav.dat").exists() ) ||
-                ! ( new File(this.preferences.getProperty(PREF_APTNAV_DIR) + "/Resources/default data/earth_fix.dat").exists() ||
-                    new File(this.preferences.getProperty(PREF_APTNAV_DIR) + "/earth_fix.dat").exists() ) ||
-                ! ( new File(this.preferences.getProperty(PREF_APTNAV_DIR) + "/Resources/default data/earth_awy.dat").exists() ||
-                    new File(this.preferences.getProperty(PREF_APTNAV_DIR) + "/earth_awy.dat").exists() ) ||
-                ! ( new File(this.preferences.getProperty(PREF_APTNAV_DIR) + "/Resources/default scenery/default apt dat/Earth nav data/apt.dat").exists() ||
-                    new File(this.preferences.getProperty(PREF_APTNAV_DIR) + "/apt.dat").exists() )
+                ! ( new File(default_data_directory + "/earth_nav.dat").exists() ||
+                    new File(aptnav_directory       + "/earth_nav.dat").exists() ) ||
+                ! ( new File(default_data_directory + "/earth_fix.dat").exists() ||
+                    new File(aptnav_directory       + "/earth_fix.dat").exists() ) ||
+                ! ( new File(default_data_directory + "/earth_awy.dat").exists() ||
+                    new File(aptnav_directory       + "/earth_awy.dat").exists() ) ||
+                ! ( new File(aptnav_directory       + "/Resources/default scenery/default apt dat/Earth nav data/apt.dat").exists() ||
+                    new File(aptnav_directory       + "/apt.dat").exists() )
                 )
         {
             logger.warning("One or more of the navigation databases (NAV, APT, FIX, AWY) could not be found!");
@@ -1407,6 +1421,13 @@ public class XHSIPreferences {
         }
     }
 
+    public static String aptNavDirectory() {
+        return aptnav_directory;
+    }
+
+    public static String defaultDataDirectory() {
+        return default_data_directory;
+    }
 
     /**
      * Notifies all preferences observers which have subscribed to the

@@ -150,18 +150,10 @@ public class ProcFile {
      */
     private static String readIcao(String icao) {
         if (icao != null && icao.length() > 0) {
-            File aptnav = new File(XHSIPreferences.get_instance().get_preference(XHSIPreferences.PREF_APTNAV_DIR));
-            if (aptnav.exists()) {
-                String data = readFile(new File(aptnav, "Custom Data/GNS430/navdata/Proc"), icao + ".txt");
-                if (data == null) {
-                    data = readFile(new File(aptnav, "Resources/GNS430/navdata/Proc"), icao + ".txt");
-                }
-                return data;
-            } else {
-                System.out.println("ProcFile cannot find "+aptnav);
-            }
+            return readFile(new File(XHSIPreferences.defaultDataDirectory(), "GNS430/navdata/Proc"), icao + ".txt");
+        } else {
+            return null;
         }
-        return null;
     }
 
     /**

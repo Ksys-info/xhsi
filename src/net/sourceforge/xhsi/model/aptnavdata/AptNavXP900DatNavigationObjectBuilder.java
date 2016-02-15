@@ -48,24 +48,25 @@ import net.sourceforge.xhsi.model.Runway;
 
 public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserver {
 
-    private String NAV_file = "/earth_nav.dat";
-    private String NAV_xplane = "/Resources/default data" + "/earth_nav.dat";
-    private String FIX_file = "/earth_fix.dat";
-    private String FIX_xplane = "/Resources/default data" + "/earth_fix.dat";
-    private String AWY_file = "/earth_awy.dat";
-    private String AWY_xplane = "/Resources/default data" + "/earth_awy.dat";
-    private String APT_file = "/apt.dat";
-    private String APT_xplane = "/Resources/default scenery/default apt dat/Earth nav data" + "/apt.dat";
-    private String pathname_to_aptnav;
+    private String NAV_file()   { return XHSIPreferences.aptNavDirectory()       + "/earth_nav.dat"; }
+    private String NAV_xplane() { return XHSIPreferences.defaultDataDirectory()  + "/earth_nav.dat"; }
+    private String FIX_file()   { return XHSIPreferences.aptNavDirectory()       + "/earth_fix.dat"; }
+    private String FIX_xplane() { return XHSIPreferences.defaultDataDirectory()  + "/earth_fix.dat"; }
+    private String AWY_file()   { return XHSIPreferences.aptNavDirectory()       + "/earth_awy.dat"; }
+    private String AWY_xplane() { return XHSIPreferences.defaultDataDirectory()  + "/earth_awy.dat"; }
+    private String APT_file()   { return XHSIPreferences.aptNavDirectory()       + "/apt.dat"; };
+    private String APT_xplane() { return XHSIPreferences.aptNavDirectory()       + "/Resources/default scenery/default apt dat/Earth nav data" + "/apt.dat"; }
+
     private NavigationObjectRepository nor;
+
+
     private ProgressObserver progressObserver;
     private Fix fix;
 
     private static Logger logger = Logger.getLogger("net.sourceforge.xhsi");
 
 
-    public AptNavXP900DatNavigationObjectBuilder(String pathname_to_aptnav) throws Exception {
-        this.pathname_to_aptnav = pathname_to_aptnav;
+    public AptNavXP900DatNavigationObjectBuilder() throws Exception {
         this.nor = NavigationObjectRepository.get_instance();
         this.progressObserver = null;
     }
@@ -78,8 +79,8 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
 
     public void read_all_tables() throws Exception {
 
-        if (new File(this.pathname_to_aptnav).exists()) {
-            logger.info("Start reading AptNav resource files in " + XHSIPreferences.PREF_APTNAV_DIR);
+        if (new File(XHSIPreferences.aptNavDirectory()).exists()) {
+            logger.info("Start reading AptNav resource files in " + XHSIPreferences.aptNavDirectory());
 
 //            this.nor.init();
 
@@ -87,7 +88,7 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
             if (this.progressObserver != null) {
                 this.progressObserver.set_progress("Loading databases", "Loading Custom Scenery APT ...", 0.0f);
             }
-            File scenery_packs_ini = new File( this.pathname_to_aptnav + "/Custom Scenery/scenery_packs.ini");
+            File scenery_packs_ini = new File( XHSIPreferences.aptNavDirectory() + "/Custom Scenery/scenery_packs.ini");
             if ( scenery_packs_ini.exists() ) {
                 // There is an ini-file that defines the load order of custom scenery
                 BufferedReader reader = new BufferedReader( new FileReader( scenery_packs_ini ));
@@ -97,7 +98,7 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
                 while ( (line = reader.readLine()) != null ) {
                     tokens = line.split("\\s+", 2);
                     if ( (tokens.length == 2) && tokens[0].equals("SCENERY_PACK") ) {
-                        File custom_apt_file = new File( this.pathname_to_aptnav + "/" + tokens[1] + "/Earth nav data/apt.dat" );
+                        File custom_apt_file = new File( XHSIPreferences.aptNavDirectory() + "/" + tokens[1] + "/Earth nav data/apt.dat" );
                         if ( custom_apt_file.exists() ) {
 
                             // We have a custom apt.dat
@@ -118,9 +119,9 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
             if (this.progressObserver != null) {
                 this.progressObserver.set_progress("Loading databases", "Loading Default Scenery APT ...", 20.0f);
             }
-            if ( new File( this.pathname_to_aptnav + this.APT_file ).exists() ) {
-                logger.info("Reading APT database ( " + this.pathname_to_aptnav + this.APT_file + " )    DEPRECATED!");
-                File aptnav_apt_file = new File( this.pathname_to_aptnav + this.APT_file );
+            if ( new File( this.APT_file() ).exists() ) {
+                logger.info("Reading APT database ( " + this.APT_file() + " )    DEPRECATED!");
+                File aptnav_apt_file = new File( this.APT_file() );
                 read_an_apt_file(aptnav_apt_file);
             }
             // read the "<aptnavdir>/Resources/default scenery/<pack>/Earth nav data/apt.dat" in alphabetical other
@@ -153,7 +154,7 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
 
     private void scan_apt_files(String basedir) throws Exception {
 
-        File scenery_dir = new File( this.pathname_to_aptnav + "/" + basedir);
+        File scenery_dir = new File( XHSIPreferences.aptNavDirectory() + "/" + basedir);
         // get the list of packs in scenery_dir
         String[] scenery_packs = scenery_dir.list();
         if ( ( scenery_packs != null ) && ( scenery_packs.length > 0 ) ) {
@@ -161,8 +162,8 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
             Arrays.sort(scenery_packs);
             for ( int i=0; i!=scenery_packs.length; i++ ) {
                 // check if we have a scenery pack directory
-                if ( new File( this.pathname_to_aptnav + "/" + basedir + "/" + scenery_packs[i] ).isDirectory() ) {
-                    File apt_file = new File( this.pathname_to_aptnav + "/" + basedir + "/" + scenery_packs[i] + "/Earth nav data/apt.dat");
+                if ( new File( XHSIPreferences.aptNavDirectory() + "/" + basedir + "/" + scenery_packs[i] ).isDirectory() ) {
+                    File apt_file = new File( XHSIPreferences.aptNavDirectory() + "/" + basedir + "/" + scenery_packs[i] + "/Earth nav data/apt.dat");
                     // check if we have an apt.dat file in this pack
                     if ( apt_file.exists() ) {
                         logger.config("Loading " + basedir + " APT " + apt_file.getPath());
@@ -374,12 +375,12 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
     public void read_nav_table() throws Exception {
 
         File file = null;
-        if ( new File( this.pathname_to_aptnav + this.NAV_xplane ).exists() ) {
-            logger.config("Reading NAV database ( " + this.pathname_to_aptnav + this.NAV_xplane + " )");
-            file = new File( this.pathname_to_aptnav + this.NAV_xplane );
-        } else if ( new File( this.pathname_to_aptnav + this.NAV_file ).exists() ) {
-            logger.info("Reading NAV database ( " + this.pathname_to_aptnav + this.NAV_file + " )    DEPRECATED!");
-            file = new File( this.pathname_to_aptnav + this.NAV_file );
+        if ( new File( this.NAV_xplane() ).exists() ) {
+            logger.config("Reading NAV database ( " + this.NAV_xplane() + " )");
+            file = new File( this.NAV_xplane() );
+        } else if ( new File( this.NAV_file() ).exists() ) {
+            logger.info("Reading NAV database ( " + this.NAV_file() + " )    DEPRECATED!");
+            file = new File( this.NAV_file() );
         }
         BufferedReader reader = new BufferedReader( new FileReader( file ));
         String line;
@@ -525,12 +526,12 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
     public void read_fix_table() throws Exception {
 
         File file = null;
-        if ( new File( this.pathname_to_aptnav + this.FIX_xplane ).exists() ) {
-            logger.config("Reading FIX database ( " + this.pathname_to_aptnav + this.FIX_xplane + " )");
-            file = new File( this.pathname_to_aptnav + this.FIX_xplane );
-        } else if ( new File( this.pathname_to_aptnav + this.FIX_file ).exists() ) {
-            logger.info("Reading FIX database ( " + this.pathname_to_aptnav + this.FIX_file + " )    DEPRECATED!");
-            file = new File( this.pathname_to_aptnav + this.FIX_file );
+        if ( new File( this.FIX_xplane() ).exists() ) {
+            logger.config("Reading FIX database ( " + this.FIX_xplane() + " )");
+            file = new File( this.FIX_xplane() );
+        } else if ( new File( this.FIX_file() ).exists() ) {
+            logger.info("Reading FIX database ( " + this.FIX_file() + " )    DEPRECATED!");
+            file = new File( this.FIX_file() );
         }
         BufferedReader reader = new BufferedReader( new FileReader( file ));
         String line;
@@ -571,12 +572,12 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
     public void read_awy_table() throws Exception {
 
         File file = null;
-        if ( new File( this.pathname_to_aptnav + this.AWY_xplane ).exists() ) {
-            logger.config("Reading AWY database ( " + this.pathname_to_aptnav + this.AWY_xplane + " )");
-            file = new File( this.pathname_to_aptnav + this.AWY_xplane );
+        if ( new File( this.AWY_xplane() ).exists() ) {
+            logger.config("Reading AWY database ( " + this.AWY_xplane() + " )");
+            file = new File( this.AWY_xplane() );
         } else {
-            logger.info("Reading AWY database ( " + this.pathname_to_aptnav + this.AWY_file + " )    DEPRECATED!");
-            file = new File( this.pathname_to_aptnav + this.AWY_file );
+            logger.info("Reading AWY database ( " + this.AWY_file() + " )    DEPRECATED!");
+            file = new File( this.AWY_file() );
         }
         BufferedReader reader = new BufferedReader( new FileReader( file ));
         String line;
@@ -617,7 +618,6 @@ public class AptNavXP900DatNavigationObjectBuilder implements PreferencesObserve
         logger.config("Preference "+key+" changed");
         if (key.equals(XHSIPreferences.PREF_APTNAV_DIR)) {
             // reload navigation databases
-            this.pathname_to_aptnav = XHSIPreferences.get_instance().get_preference(XHSIPreferences.PREF_APTNAV_DIR);
             if (XHSIStatus.nav_db_status.equals(XHSIStatus.STATUS_NAV_DB_NOT_FOUND) == false) {
                 try {
                     logger.config("Reload navigation tables");
