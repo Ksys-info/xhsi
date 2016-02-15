@@ -2065,20 +2065,36 @@ public class MovingMap extends NDSubcomponent {
         boolean active = entry.active || entryEqualsNavId;
 
         if (Approach.DEBUG) {
-            Approach.out.println("FMS["+entry.index + "]: type="+entry.type+": flown=" + legHasBeenFlown + " name=" + entry.name + (active ? "*" : "") + (entryEqualsNavId ? "+" : " (navid="+avionics.gps_nav_id()+")"));
+            Approach.out.print("FMS[" + entry.index + "]:")
+                        .print(" type=" + entry.type)
+                        .print(" flown=" + legHasBeenFlown)
+                        .print(" name=" + entry.name)
+                        .print(active ? "*" : "")
+                        .print(entryEqualsNavId ? "+" : "")
+                        .print(" navid="+avionics.gps_nav_id()+")")
+                        .print((lastPoint == null) ? " **IGNORED**" : "")
+                        .println();
+
             //Approach.out.println("              lat="+entry.lat+" lon="+entry.lon+" altitude="+entry.altitude);
         }
 
         /*
-         * When the X-Plane Garmin GPS is directing an approach, this can
-         * be detected by the factbthat the FMS target is not equal to the
-         * GPS target. In this case iit is likely that the FMS target will
-         * be tyhe destination airpport, but for some strange reason this
+         * If lastPoint is null this is because the approach was completed and no more FMS entries are live
+         */
+        if (lastPoint == null) {
+            return null;
+        }
+
+        /*
+         * When the X-Plane Garmin GPS is directing an approach this can
+         * be detected by the fact that the FMS target is not equal to the
+         * GPS target. In this case it is likely that the FMS target will
+         * be the destination airpport, but for some strange reason this
          * is not always the case (when one activates an approach the FMS
          * target does not change). So the strategy used here is to assume
          * the aircraft is flying a (Garmin) approach if FMS target != GPS
-         * target _OR_ an approach has already in progress. This is worked
-         * out in Approach.getPath()
+         * target _OR_ an approach has already in progress _AND_ the final
+         * FMS entry is an airport. This is worked out in Approach.getPath()
          */
         ArrayList<Approach.ApproachState.Leg> legs = (active) ? approach.getPath(entry.name, navId) : null;
         if (legs != null) {
@@ -2096,20 +2112,19 @@ public class MovingMap extends NDSubcomponent {
                 }
                 endPoint = leg.getLocation(legIsActive);
                 if (Approach.DEBUG) {
-                    Approach.out.print(leg.isCertain   ? "  " : "~ ")
-                                .print(legHasBeenFlown ? "x" : " ")
-                                .print(legIsActive     ? "*" : " ")
+                    Approach.out.print(legHasBeenFlown ? "  x" : leg.isCertain ? "   " : "  ~")
+                                .print(legIsActive ? "*" : " ")
                                 .print("leg:"+i+" ").print(leg)
                                 .print(" lastPt=").print(lastPoint)
                                 .print(" endPt=").print(endPoint)
                                 .println();
                 }
 
-                if (draw_FMS_line(g2, legIsActive, legHasBeenFlown, leg.isCertain, lastPoint, endPoint)) {
+                if (draw_FMS_line(g2, leg.missed, legIsActive, legHasBeenFlown, leg.isCertain, lastPoint, endPoint)) {
                     draw_FMS_detail0(g2, leg.navId, 0, 0, 0, false, legIsActive);
                 }
                 if (legIsActive) {
-                    activeLeg = new Object[] {leg.isCertain, lastPoint, endPoint, leg.navId};
+                    activeLeg = new Object[] {leg, lastPoint, endPoint};
                 }
                 lastPoint = endPoint;
             }
@@ -2123,33 +2138,32 @@ public class MovingMap extends NDSubcomponent {
             if (activeLeg != null) {
                 boolean legActive = true;
                 boolean hasBeenFlown = false;
-                boolean certain = (Boolean)activeLeg[0];
+                Approach.ApproachState.Leg leg = (Approach.ApproachState.Leg) activeLeg[0];
                 float[] lastPt = (float[])activeLeg[1];
-                float[] endPt = (float[])activeLeg[2];
-                String  nid  = (String)activeLeg[3];
-                if (draw_FMS_line(g2, legActive, hasBeenFlown, certain, lastPt, endPt)) {
-                    draw_FMS_detail0(g2, nid, 0, 0, 0, false, legActive);
+                float[] endPt  = (float[])activeLeg[2];
+                if (draw_FMS_line(g2, leg.missed, legActive, hasBeenFlown, leg.isCertain, lastPt, endPt)) {
+                    draw_FMS_detail0(g2, leg.navId, 0, 0, 0, false, legActive);
                 }
             }
-            return endPoint;
+            return null; // Signal not to print any more FMS entries
         } else {
-            if (draw_FMS_line(g2, active, legHasBeenFlown, true, lastPoint, entryLatLon)) {
+            if (draw_FMS_line(g2, false, active, legHasBeenFlown, true, lastPoint, entryLatLon)) {
                 draw_FMS_detail(g2, entry, !active);
             }
             return entryLatLon;
         }
     }
 
-    boolean draw_FMS_line(Graphics2D g2, boolean active, boolean legHasBeenFlown, boolean certain, float[] lastPoint, float[] nextPoint) {
+    boolean draw_FMS_line(Graphics2D g2, boolean missed, boolean active, boolean legHasBeenFlown, boolean certain, float[] lastPoint, float[] nextPoint) {
         if (lastPoint == null || nextPoint == null || (legHasBeenFlown && !DRAW_FLOWN_LEGS)) {
             return false;
         } else {
             if (active) {
                 g2.setColor(nd_gc.fmc_active_color);
             } else if (!legHasBeenFlown) {
-                g2.setColor(nd_gc.fmc_other_color);
+                Color c = nd_gc.fmc_other_color;
+                g2.setColor(missed ? c.darker().darker() : c);
             } else {
-              //g2.setColor(nd_gc.fmc_other_color.darker().darker());
                 g2.setColor(Color.BLUE);
             }
             Stroke original_stroke = g2.getStroke();
@@ -2172,6 +2186,13 @@ public class MovingMap extends NDSubcomponent {
         float   entry_total_ete = entry.total_ete;
         boolean entry_displayed = entry.displayed;
         boolean entry_active    = entry.active;
+        if (entry_active) {
+            g2.setColor(nd_gc.fmc_ll_active_color);
+        } else if (entry_displayed) {
+            g2.setColor(nd_gc.fmc_ll_disp_color);
+        } else {
+            g2.setColor(nd_gc.fmc_ll_other_color);
+        }
         draw_FMS_detail0(g2, entry_name, entry_type, entry_altitude, entry_total_ete, entry_displayed, entry_active && !override_active);
     }
 
@@ -2204,11 +2225,8 @@ public class MovingMap extends NDSubcomponent {
 
             if ( entry_type == 2048 ) {
                 if ( entry_name.equals("Lat/Lon") || entry_name.equals("L/L") ) {
-                    if (entry_active) {
+                    if (entry_active || entry_displayed) {
                         // a small magenta circle for unnamed active waypoints
-                        g2.setColor(nd_gc.fmc_active_color);
-                        g2.drawOval(x-c4, y-c4, 2*c4, 2*c4);
-                    } else if (entry_displayed)  {
                         g2.setColor(nd_gc.fmc_active_color);
                         g2.drawOval(x-c4, y-c4, 2*c4, 2*c4);
                     } else {
@@ -2220,13 +2238,6 @@ public class MovingMap extends NDSubcomponent {
                     label_y -= 1;
                 } else {
                     // T/C, T/D, B/D, S/C, ACCEL or DECEL
-                    if (entry_active) {
-                        g2.setColor(nd_gc.fmc_ll_active_color);
-                    } else if (entry_displayed) {
-                        g2.setColor(nd_gc.fmc_ll_disp_color);
-                    } else {
-                        g2.setColor(nd_gc.fmc_ll_other_color);
-                    }
                     g2.drawOval(x-c6, y-c6, 2*c6, 2*c6);
                     g2.setFont(nd_gc.font_xs);
                     g2.drawString(entry_name, x + x12, y + label_y);
@@ -2234,13 +2245,6 @@ public class MovingMap extends NDSubcomponent {
                 }
             } else {
                 // ARPT, VOR, NDB or FIX waypoints
-                if (entry_active) {
-                    g2.setColor(nd_gc.fmc_active_color);
-                } else if (entry_displayed) {
-                    g2.setColor(nd_gc.fmc_disp_color);
-                } else {
-                    g2.setColor(nd_gc.fmc_other_color);
-                }
                 g2.drawPolygon(x_points_star, y_points_star, 9);
                 g2.setFont(nd_gc.font_xs);
                 g2.drawString(entry_name, x + x12, y + label_y);
@@ -2249,14 +2253,6 @@ public class MovingMap extends NDSubcomponent {
 
             if ( avionics.efis_shows_data() && !data_inhibit ) {
                 g2.setFont(nd_gc.font_xxs);
-// the color is already set...
-//                if (entry_active) {
-//                    g2.setColor(nd_gc.fmc_active_color);
-//                } else if (entry_displayed) {
-//                    g2.setColor(nd_gc.fmc_disp_color);
-//                } else {
-//                    g2.setColor(nd_gc.fmc_other_color);
-//                }
                 if ( entry_altitude != 0 ) {
                     g2.drawString("" + entry_altitude, x + x12, y + label_y);
                     label_y += nd_gc.line_height_xxs;

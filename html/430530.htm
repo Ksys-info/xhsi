@@ -114,30 +114,30 @@ information about what the GPS is really up to (like has a new leg been
 activated or is the new GPS navigation target a "direct to," or whatever) the
 results can be a little different to what the 430/530 is displaying (especially
 with things like procedure turns and holds). &nbsp;Nevertheless, the results
-are often pretty impressive and they are always a lot better than showing nothing
+are often pretty impressive and are always a lot better than showing nothing
 at all (IMHO). </p>
 
 <p class=MsoNormal>The general algorithm is to look for a situation where the
 FMS target is not equal to the GPS target and then to assume that if the last
-entry in the FMS is any airport, this is where the approach is for, and the
+entry in the FMS is an airport, that this is where the approach is for, and the
 current GPS target is one of the waypoints. This is verified by reading the
 contents of the airport ".txt" files in
 &quot;Resources/GNS430/navdata/Proc&quot; or &quot;Custom
-Data/GNS430/navdata/Proc&quot; and looking at all the APPTR/FINAL paths in
+Data/GNS430/navdata/Proc&quot; and looking at all the APPTR/FINAL data in
 there to see of the above assumptions look reasonable. </p>
 
 <p class=MsoNormal>The main problem is that with such limited information the
 number of possible paths may be more than one, and in this case a number of
-approximations are displayed. Nevertheless, as new waypoints are found the
-number of possible paths always comes down rapidly. &nbsp;Typically the initial
+approximations are displayed. (Nevertheless, as new waypoints are found the
+number of possible paths always comes down rapidly.) &nbsp;Typically the initial
 number of paths is between one and four, though there are often many
 similarities in the paths like they all use the same runway, or the paths only
-differing by one extra waypoint either just before or just after the runway.</p>
+differ by one extra waypoint (often just before or just after the runway).</p>
 
 <p class=MsoNormal>Many approaches will just work with no issues, but
 occasionally one can expect the following approximations to appear:</p>
 
-<p class=MsoNormal>1, The ND does not known the an approach is being flown
+<p class=MsoNormal>1, The ND does not know the an approach is being flown
 until the GPS is actually flying a leg of the approach, so the first thing to
 notice is even through an approach may be loaded it will not initially appear. </p>
 
@@ -173,12 +173,12 @@ five paths were found that could continue after KLIDE:</p>
 
 <p class=MsoListParagraph>&nbsp;</p>
 
-<p class=MsoListParagraph style='margin-left:0in'>&nbsp;&nbsp; So the runway
-could either be RW30L or RW30R. So, in this case, that label KSJC is used to
+<p class=MsoListParagraph style='margin-left:0in'>&nbsp;&nbsp; Te runway
+could either be RW30L or RW30R, so in this case, that label KSJC is used to
 represent the runway.</p>
 
 <p class=MsoNormal>&nbsp; After KLIDE, the next waypoint is revealed to be
-HIVAK and so the number of possible paths is now just one now just one.</p>
+HIVAK, and this means the number of possible paths is now just one now just one.</p>
 
 <p class=MsoNormal style='margin-left:.25in'><img width=289 height=295
 src="430530_files/image003.jpg"></p>
@@ -208,7 +208,7 @@ src="430530_files/image005.jpg"></p>
 <p class=MsoListParagraph style='margin-left:0in'>4, Here is another little
 quirk. The KOAK VOR10R.COMMO approach goes to runway 10R, but the lat/log for
 this runway does not appear anywhere in KOAK.txt (which is unusual), so instead
-the program used the lot/lon for KOAK in the FMS entry. (BTW, Interesting that
+the program has used the lat/lon for KOAK in the FMS entry. (BTW, Interesting that
 this is a different place to the blue circle). </p>
 
 <p class=MsoListParagraph style='margin-left:0in'><span style='display:none'>&nbsp;</span></p>

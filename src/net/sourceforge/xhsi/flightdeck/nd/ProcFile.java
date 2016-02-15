@@ -66,7 +66,7 @@ public class ProcFile {
                 // "VI",  // Heading to an intercept
                 // "VM",  // Heading to a manual termination
                 // "VR",  // Heading to a radial termination
-                   "RW",  // Special runway entry
+                   "RW",  // Special runway entry just used here (and does not have a lat/log)
                 }
             )
         );
@@ -216,9 +216,9 @@ public class ProcFile {
                  }
                  ec++;
                  /*
-                  * If the is a FINAL and the entry indexed by runwayPos does not specify the
+                  * If this is a FINAL and the entry indexed by runwayPos does not specify the
                   * runway then insert a special "RW" entry after this to show this is where
-                  * the runway is
+                  * the to-runway leg is
                   */
                  if (runwayPos == ec && !entry[1].startsWith("RW")) {
                      sect.addEntry("RW,RW"+sect.header[2]);
@@ -241,11 +241,11 @@ public class ProcFile {
      * getLatLon
      */
     public float[] getLatLon(String id) {
-        return coords.get(id);
+        return coords.get(id.toUpperCase());
     }
 
     /**
-     * findClosestNavId
+     * findClosestNavId (This feature is currently unused)
      */
     public String findClosestNavId(float[] latlon) {
         if (distances.length == 0) {
@@ -348,9 +348,10 @@ public class ProcFile {
                         /*
                          * Here the same fitering is done as before, but additionally a runway
                          * identifier is inserted in all FINAL sections where none is present.
-                         * This is placed at the first occurrence of an entry that has no lat/log
-                         * or waypoint identifier. This is something of a non-analytical way of
-                         * doing thing, but it appears to produce the correct result.
+                         *
+                         * (This is a legacy feature that shoukd not be needed any longer but has
+                         * been retained while the new solution to this problem in createSections()
+                         * is evaluaded).
                          */
                         if (!PATH_TERMINATORS.contains(entry[0])) {
                             if (!hasRunway) {
@@ -378,8 +379,8 @@ public class ProcFile {
                  * to the path list. If the path starts before the runway identifier it is part of
                  * the approach and it's first term is unchanged. If it occurs at or after the
                  * runway identifier it is part of a missed approach and the first term gets a '-'
-                 * appended. This difference can be used to narrow the possible set of paths, when
-                 * it is known if the a/c has passed the runway and the button is .pressed to remove
+                 * appended. This difference can be used to narrow the possible set of paths, if it
+                 * is known that the a/c has passed the runway and the button is .pressed to remove
                  * the 'susp' condition.
                  */
                 String[] alist = list.toArray(new String[0]);
@@ -390,9 +391,13 @@ public class ProcFile {
                     if (key.startsWith("RW")) {
                         suffix = "-";
                     }
-                    sb.append(key).append(suffix).append(' ');
+                    sb.append(key).append(suffix);
+                    boolean missed = suffix.length() > 0;
                     for (int j = i ; j < alist.length ; j++) {
-                        sb.append(' ').append(alist[j]);
+                        String str = alist[j];
+                        sb.append(' ').append(missed ? str.toLowerCase() : str); // l/c = part of missied approach
+                        missed |= str.startsWith("RW");
+
                     }
                     pathSet.add(sb.toString());
                 }

@@ -224,15 +224,17 @@ public class Approach {
             private float[] location;
             final boolean isCertain;
             final boolean calculate;
+            final boolean missed;
 
             /**
              * Leg
              */
             Leg(String navId, float[] location, boolean certain, boolean calculate) {
-                this.navId     = navId;
+                this.navId     = navId.toUpperCase();
                 this.location  = location;
                 this.isCertain = certain;
                 this.calculate = calculate;
+                this.missed    = navId.length() > 0 && Character.isLowerCase(navId.charAt(0));
             }
 
             /**
@@ -271,7 +273,7 @@ public class Approach {
                 /*
                  * If the navId cannot be found in the ProcFile data then it must be a
                  * special waypoint inserted by the GPS simulatlor so just insert it
-                 * in the list. Otherwise either it is time to reevaluate the path that
+                 * in the list. Otherwise it is time to reevaluate the path that
                  * is being used.
                  */
                 float[] posn = file.getLatLon(navId);
@@ -282,9 +284,9 @@ public class Approach {
                     }
                 } else {
                     /*
-                     * It is impossible to know why this new point has appears because of a direct-to
-                     * or an activate-leg. Here the assumptioon is made that it is the former if the
-                     * current leg was uncertain, othersize it isnassumed to be a direct-to. The
+                     * It is impossible to know if a new point appears because of a direct-to or an
+                     * activate-leg operation. Here the assumptioon is made that it is the former if the
+                     * current leg was uncertain, othersize it is assumed to be a direct-to. The
                      * difference is only in where the red line will origionate.
                      */
                     Leg old = legs.get(currentLeg);
@@ -320,7 +322,9 @@ public class Approach {
                 if (navSet != null) {
                    /*
                     * If oldLeg is non-null see if a smaller set can be found by staring from
-                    * there and removing all the pathers that so not start with navId.
+                    * there and removing all the entries that do not start with navId. (A better
+                    * approach would be to carry on like this beyond just the first two waypoints
+                    * but just this works out pretty well.)
                     */
                     if (navSet.size() > 1 && oldLeg != null) {
                         HashSet<String> oldSet = findPaths(oldLeg.navId, missedApproach);
@@ -340,15 +344,7 @@ public class Approach {
                             }
                         }
                     }
-                    if (addPathLegs(navId, navSet)) {
-                        /*
-                         * If no better path can be found then just add an uncertain final leg to the airport.
-                         */
-                        legs.add(new Leg(airportId, airportLoc, false, false));
-                        if (DEBUG) {
-                            out.println("+++ setupLegs default path to: " + airportId);
-                        }
-                    }
+                    addPathLegs(navId, navSet);
                 }
             }
         }
@@ -364,7 +360,7 @@ public class Approach {
         /**
          * addPathLegs
          */
-        private boolean addPathLegs(String navId, HashSet<String> pathSet) {
+        private void addPathLegs(String navId, HashSet<String> pathSet) {
             /*
              * Always add the current navId because this is never in doubt.
              */
@@ -383,16 +379,15 @@ public class Approach {
                 for (String id : paths[0].split("\\s+")) {
                     addLeg(id);
                 }
-                return false;
             } else {
-                return addMultiPathLegs(paths);
+                addMultiPathLegs(paths);
             }
         }
 
         /**
          * addMultiPathLegs
          */
-        private boolean addMultiPathLegs(String[] paths) {
+        private void addMultiPathLegs(String[] paths) {
             if (DEBUG) {
                 for (String path : paths) {
                     out.println("path="+path);
@@ -418,18 +413,18 @@ public class Approach {
             }
 
             /*
-             * If they do not then give up here and write an uncertain line to the airport.
-             * What will happen is when the next waypoint is reached, it should be found
-             * in the ProcFile and this will trigger a reevaluation of the approach which
-             * will eventually lead to a single unambigious runway (and evevtually a single
-             * unambigious path).
+             * If they do not then note this so an uncertain line to the airport.will be written.
+             * When the next waypoint is reached, it should be found in the ProcFile and
+             * this will trigger a re-evaluation of the approach which will eventually lead
+             * to a single unambigious runway (and evevtually a single unambigious path).
              */
             for (String rw : runways) {
                 if (!runway.equals(rw)) {
                     if (DEBUG) {
                         out.println("different runways  runway="+runway+" rw="+rw);
                     }
-                    return true;
+                    runway = null;
+                    break;
                 }
             }
 
@@ -456,10 +451,15 @@ public class Approach {
             }
 
             /*
-             * If the runway was not reached then add an uncertain leg to it.
+             * If the runway was not reached then either add an uncertain leg to the
+             * airport (because the runways are different) or add an uncertain leg to it.
              */
             if (!runwayLegAdded) {
-                addLeg(runway, false);
+                if (runway == null) {
+                    legs.add(new Leg(airportId, airportLoc, false, false));
+                } else {
+                    addLeg(runway, false);
+                }
             }
 
             /*
@@ -468,7 +468,7 @@ public class Approach {
              * by just having one extra waypoint directly after the runway (this also seems
              * to occur frequently before the runway as well). In these isolated subset cases
              * a single uncertain leg can act as a "catch all," If not, all the missied approach
-             * waypoints are omitted (here again, a simpler list will hopfully appear later).
+             * waypoints are omitted (here again, a simpler path will after the missed approach).
              */
             ArrayList<String> ends = new ArrayList<String>();
             boolean certain = false;
@@ -490,7 +490,6 @@ public class Approach {
                 addLeg(end, certain);
                 certain = true;
             }
-            return false;
         }
 
         /**
@@ -508,9 +507,9 @@ public class Approach {
              * Occasionally a path entry is synthesized (in ProcFile.java) for runways when
              * they are missing (at least explicitly) from a FINAL section. The location is
              * often known becasue the runway may be explicitly discribed in another FINAL
-             * section. However, it looks like this may not always be the case and so the fallback
-             * used here is to use the airport location instead (which is known), but also
-             * to mark the leg as one that must have the location calculated when it becomes
+             * section. However, this is not always case and so the fallback used
+             * here is to use the airport location instead (which is known), but also to
+             * mark the leg as one that must have the location calculated when it becomes
              * active. This works because a lat/log can be calculated from the a/c position
              * and the direction and distance to the GPS nav target (when the nav id is equal
              * to the FMS entry name). This will always be the near end of the target runway.
