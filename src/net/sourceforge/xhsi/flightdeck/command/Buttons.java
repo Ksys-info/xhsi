@@ -1412,7 +1412,9 @@ public class Buttons {
     static class cBRK extends Button {
         void update(Analysis a) {
             //float brk = EPI.getFloat("sim/flightmodel/controls/parkbrake", 0);
-            float brk = EPI.getFloat("sim/cockpit2/controls/parking_brake_ratio", 0);
+            //float brk = EPI.getFloat("sim/cockpit2/controls/parking_brake_ratio", 0);
+
+            float brk = a.pbreak ? 1 : 0;
             set(brk == 1);
             if (brk > 0) {
                 box(Color.RED, false);

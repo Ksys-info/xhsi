@@ -33,6 +33,11 @@ public class Approach {
     public final static boolean DEBUG = System.getProperty("approach.debug") != null;
 
     /**
+     * lastAirport
+     */
+    private static String lastAirport = null;
+
+    /**
      * Reference to the parient MovingMap
      */
     private final MovingMap mm;
@@ -50,10 +55,11 @@ public class Approach {
         state = new ApproachState(mm, "");
     }
 
+
     /**
-     * init
+     * calcFingerPrint
      */
-    float[] init() {
+    private String calcFingerPrint() {
         StringBuilder sb  = new StringBuilder();
         int count = mm.fms.get_nb_of_entries();
         for (int i = 0 ; i < count ; i++) {
@@ -63,13 +69,39 @@ public class Approach {
                 sb.append(entry.active ? '*' : '&');
             }
         }
-        String str = sb.toString();
+        return sb.toString();
+    }
+
+    /**
+     * newState
+     */
+    private void newState() {
+        state = new ApproachState(mm, calcFingerPrint());
+    }
+
+    /**
+     * resetState
+     */
+    private void resetState(String msg) {
+        if (state.legs.size() > 1) {
+            if (DEBUG) {
+                out.println(msg);
+            }
+            newState();
+        }
+    }
+
+    /**
+     * init
+     */
+    float[] init() {
+        String str = calcFingerPrint();
         String pstr = "";
         if (DEBUG) {
-            pstr = "++++++++++++++++++++++++++++++++++++++++++++++++++++++++ count=" + count + " fingerPrint=" + str;
+            pstr = "++++++++++++++++++++++++++++++++++++++++++++++++++++++++ fingerPrint=" + str;
         }
         if (!state.fingerPrint.equals(str)) {
-            state = new ApproachState(mm, str);
+            newState();
             pstr += " *** NEW STATE ***";
         }
         if (DEBUG) {
@@ -82,22 +114,27 @@ public class Approach {
      * kill
      */
     void kill() {
-        if (state.fingerPrint.length() > 0) {
-            if (DEBUG) {
-                out.println("**KILL**");
-            }
-            state = new ApproachState(mm, "");
-        }
+        resetState("**KILL**");
     }
 
     /**
      * getPath
      */
-    ArrayList<ApproachState.Leg> getPath(String fmsId, String navId) {
-        if (fmsId.equals(navId) && state.legs.size() == 1) {
-            return null;
-        } else {
+    ArrayList<ApproachState.Leg> getPath(FMSEntry entry, String navId) {
+        /*
+         * If the new waypoint is an FMS waypoint then delete the approach
+         */
+        if (state.fmsWaypoints.contains(navId)) {
+            resetState("**RESET**");
+        }
+
+        /*
+         * Continue the approach or start a new one if navId is noty same as FMS target
+         */
+        if (state.legs.size() > 1 || (entry.active && !entry.name.equals(navId))) {
             return state.getPath(navId);
+        } else {
+            return null;
         }
     }
 
@@ -132,6 +169,11 @@ public class Approach {
          * fingerPrint
          */
         final String fingerPrint;
+
+        /**
+         * fmsWaypoints
+         */
+        private final HashSet<String> fmsWaypoints;
 
         /**
          * path
@@ -186,13 +228,20 @@ public class Approach {
                 airportLoc = new float[] {dst.lat, dst.lon};
                 file = ProcFile.load(airportId);
                 if (DEBUG) {
-                    out.println("airportId=" + airportId + ((file == null) ? "** NOT FOUND**" : ("\n" + file)));
+                    out.println("airportId=" + airportId);
+                    if (file == null) {
+                        out.println("** NOT FOUND**");
+                    } else if (!airportId.equals(lastAirport)) {
+                        out.println(file);
+                        lastAirport = airportId;
+                    }
                 }
             } else {
                 airportId  = null;
                 airportLoc = null;
                 file       = null;
             }
+            fmsWaypoints = getFmsWaypoints();
             clearLegs(null);
         }
 
@@ -209,6 +258,22 @@ public class Approach {
         private FMSEntry getLastFmsWaypoint() {
             FMSEntry wp = mm.avionics.get_fms().get_last_waypoint();
             return (wp != null && wp.type == FMSEntry.ARPT) ? wp : null;
+        }
+
+        /**
+         * getWaypoints()
+         */
+        private HashSet<String> getFmsWaypoints() {
+            HashSet<String> set = new HashSet<String>();
+            boolean flown = true;
+            int count = mm.fms.get_nb_of_entries();
+            for (int i = 0 ; i < count ; i++) {
+                FMSEntry entry = mm.fms.get_entry(i);
+                if (entry != null &&entry.type != FMSEntry.ARPT) {
+                    set.add(entry.name);
+                }
+            }
+            return set;
         }
 
 
@@ -481,10 +546,9 @@ public class Approach {
                     } else if (str.startsWith("RW")) {
                         certain = true;
                         break kloop;
-                    } else {
-                        ends.add(0, str);
                     }
                 }
+                ends.add(0, str);
             }
             for (String end : ends) {
                 addLeg(end, certain);

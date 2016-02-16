@@ -80,9 +80,11 @@ public class Analysis extends SuperAnalysis {
     boolean gear_is_down   = !retractable || aircraft.gear_is_down();
     boolean gear_unsafe    = aircraft.gear_unsafe();
     boolean gear_warning   = aircraft.gear_warning() || (ra < 500 && decending && !gear_is_down);
+    boolean pbreak         = aircraft.get_parking_brake() > 0.01f && p.warn_bgf;
     boolean bad_climb      = false; // (for now)
     boolean vvi_warn       = (p.warn_bad_vs && p.warn_no_ap && ap_cmd) && (ap_vs_on || ap_flc_on || ap_ptch_on) &&
                              ((climbing && (alt > atarget || ap_vs_on)) || (decending && alt < atarget));
+
 
     String  fuel           = "";
     String  gear           = "";
@@ -503,7 +505,7 @@ public class Analysis extends SuperAnalysis {
         c.write("STALL",     "The aircraft is stalling",          aircraft.stall_warning());
         c.write("TERRAIN",   "The aircraft may hit the ground ",  aircraft.terrain_warning());
         c.write("GEAR",      "The landing gear is NOT down",      gear_warning && p.warn_bgf);
-        c.write("BREAK",     "The breaks are on",                 aircraft.get_parking_brake() > 0.01f && p.warn_bgf);
+        c.write("BREAK",     "The breaks are on",                 pbreak);
         c.write("AUTOPILOT", "The autopilot is disconnected",     p.warn_no_ap && ap_mode == 0);
         c.write("FLAPS",     "The flaps are not set for takeoff", flap_pos > FLAP_TOFF && !flying && p.warn_bgf);
         c.write("BAD-CLIMB", "Climb with gear or flaps extended", bad_climb);
